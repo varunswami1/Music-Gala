@@ -1,0 +1,92 @@
+:root { --bg:#000; --fg:#e8e8e8; --dim:#8a8a8a; --line:#ffffff30; --mono: ui-monospace, Menlo, Consolas, monospace; }
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 12px/1.6 var(--mono); }
+body { overflow: hidden; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; letter-spacing: .18em; }
+button:disabled { opacity: .4; cursor: default; }
+:focus-visible { outline: 1px solid #fff; outline-offset: 3px; }
+.world { position: fixed; inset: 0; touch-action: none; }
+.world.busy { pointer-events: none; }
+.overlay { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+.panel, .hbtn, .wordmark, .controls button, .tabs { pointer-events: auto; }
+.header { position: absolute; top: 18px; left: 28px; right: 28px; display: flex; justify-content: space-between; align-items: center; }
+.hbtn { font-size: 18px; padding: 6px 0; }
+.wordmark { font-size: 15px; letter-spacing: .4em; pointer-events: auto; }
+.hintbar { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; color: var(--dim); letter-spacing: .2em; text-transform: uppercase; font-size: 11px; }
+.controls { position: absolute; right: 28px; bottom: 18px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; font-size: 11px; color: var(--dim); }
+.controls button { color: var(--dim); } .controls button:hover:not(:disabled) { color: #fff; }
+.eyebrow { color: var(--dim); letter-spacing: .25em; text-transform: uppercase; font-size: 11px; }
+.panel.left, .panel.right { position: absolute; top: 96px; bottom: 64px; width: 330px; display: flex; flex-direction: column; min-height: 0; }
+.panel.left { left: 28px; } .panel.right { right: 28px; text-align: right; align-items: flex-end; }
+.panel h1 { margin: 6px 0 4px; font: 600 26px/1.15 system-ui, sans-serif; letter-spacing: .02em; text-transform: uppercase; }
+.artist-link { text-decoration: underline; text-underline-offset: 3px; letter-spacing: .1em; }
+.meta { margin: 14px 0; display: grid; grid-template-columns: 80px 1fr; gap: 2px 10px; color: var(--dim); } .meta b { font-weight: 400; color: var(--fg); }
+.lyrics { flex: 1; min-height: 0; overflow-y: auto; white-space: pre-wrap; border-top: 1px solid var(--line); padding: 12px 6px 12px 0; color: #cfcfcf; line-height: 1.9; pointer-events: auto; }
+.btn { border: 1px solid var(--line); padding: 8px 14px; letter-spacing: .2em; display: inline-block; margin-top: 14px; } .btn:hover { background: #fff; color: #000; }
+.list { flex: 1; min-height: 0; overflow-y: auto; width: 100%; margin-top: 12px; padding-right: 6px; }
+.row { display: grid; grid-template-columns: 1fr 44px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #ffffff14; text-align: right; }
+.row:hover { background: #ffffff0d; } .row img { width: 44px; height: 44px; object-fit: cover; background: #111; } .row small { color: var(--dim); }
+.cursor { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 100; }
+.cursor .dot { position: absolute; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: #fff; }
+.cursor .ring { position: absolute; width: 46px; height: 46px; margin: -23px; border: 1px solid #fffa; border-radius: 50%; opacity: 0; transform: scale(.4); transition: .2s; }
+.cursor.active .ring { opacity: 1; transform: scale(1); }
+.cursor .clabel { position: absolute; left: 30px; top: -9px; white-space: nowrap; letter-spacing: .18em; font-size: 11px; text-transform: uppercase; text-shadow: 0 0 6px #000; }
+.no-cursor, .no-cursor * { cursor: none !important; }
+.no-cursor .panel .lyrics, .no-cursor .panel .list { cursor: auto !important; }
+.guide { position: fixed; inset: 0; z-index: 60; background: #000b; backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; }
+.guide .steps { display: flex; gap: 80px; flex-wrap: wrap; justify-content: center; text-align: center; letter-spacing: .25em; }
+.guide .steps small { display: block; color: var(--dim); margin-top: 8px; letter-spacing: .2em; }
+.status { position: absolute; left: 28px; bottom: 56px; color: var(--dim); font-size: 11px; letter-spacing: .15em; }
+
+.hbtn:disabled { opacity: .3; cursor: default; }
+.calm { color: var(--dim); max-width: 36ch; }
+/* accessibility: objects list is real DOM for keyboard + screen readers, visually hidden (the 3D object lights up instead) */
+.objnav { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; pointer-events: none; }
+.focuslabel { position: absolute; bottom: 44px; left: 0; right: 0; text-align: center; color: #fff; letter-spacing: .2em; font-size: 11px; text-transform: uppercase; }
+/* room change: fast fade to black, slower fade back */
+.fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 50; transition: opacity .46s ease-out; }
+.fade.out { opacity: 1; transition: opacity .24s ease-in; }
+/* drag-to-look */
+body.dragging, body.dragging * { user-select: none; }
+.dragging .cursor .ring { opacity: 1; transform: scale(.65); }
+/* bottom-left room tabs (from the reference lobby) */
+.tabs { position: absolute; left: 28px; bottom: 18px; display: flex; gap: 18px; font-size: 11px; letter-spacing: .2em; color: var(--dim); }
+.tabs a { padding: 4px 0; border-bottom: 1px solid transparent; } .tabs a:hover { color: #fff; }
+.tabs a[aria-current=page] { color: #fff; border-bottom-color: #fff; }
+/* MENU drawer */
+.menu-wrap { position: fixed; inset: 0; z-index: 40; pointer-events: auto; }
+.menu-backdrop { position: absolute; inset: 0; background: #0009; }
+.menu { position: absolute; top: 0; right: 0; bottom: 0; width: min(380px, 100vw); padding: 72px 28px 28px; overflow-y: auto; background: #000e; backdrop-filter: blur(10px); border-left: 1px solid var(--line); animation: menu-in .28s ease-out; }
+.menu-close { position: absolute; top: 18px; right: 28px; }
+.menu ol { list-style: none; margin: 14px 0 0; padding: 0; }
+.menu a { display: grid; grid-template-columns: 34px 1fr; align-items: center; padding: 9px 0; border-bottom: 1px solid #ffffff14; letter-spacing: .22em; text-transform: uppercase; }
+.menu a:hover { color: #fff; } .menu a:hover span:last-child { text-decoration: underline; text-underline-offset: 4px; }
+.menu .num { color: var(--dim); font-size: 10px; }
+.menu li.d1 a { padding-left: 16px; } .menu li.d2 a { padding-left: 34px; font-size: 11px; color: var(--dim); }
+.menu a[aria-current=page] { color: #fff; box-shadow: inset 2px 0 #fff; padding-left: 12px; }
+.menu li.d1 a[aria-current=page] { padding-left: 22px; } .menu li.d2 a[aria-current=page] { padding-left: 40px; }
+.menu .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--accent, #fff); }
+@keyframes menu-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+/* interaction guide */
+.guide .gicon { display: flex; justify-content: center; margin-bottom: 18px; color: #cfcfcf; }
+.guide .steps small.faint { opacity: .6; letter-spacing: .15em; }
+.guide button { letter-spacing: .3em; color: var(--dim); } .guide button:hover { color: #fff; }
+/* focus states for every control */
+.hbtn:focus-visible, .btn:focus-visible, .controls button:focus-visible, .tabs a:focus-visible, .menu a:focus-visible, .wordmark:focus-visible { outline: 1px solid #fff; outline-offset: 4px; }
+/* touch + small screens: bigger targets; panels become bands so the 3D stays visible in the middle (planned, see docs/SHELL.md) */
+@media (pointer: coarse) { .hbtn { padding: 12px 8px; } .tabs a, .controls button { padding: 10px 4px; } }
+@media (max-width: 900px) {
+  .header { left: 16px; right: 16px; }
+  .wordmark { font-size: 12px; letter-spacing: .3em; }
+  .tabs { display: none; }
+  .controls { right: 16px; }
+  .panel.left, .panel.right { position: absolute; left: 12px; right: 12px; width: auto; text-align: left; align-items: flex-start; background: #000c; padding: 10px 12px; border-top: 1px solid var(--line); overflow-y: auto; }
+  .panel.left { top: auto; bottom: 44px; max-height: 36vh; }
+  .panel.right { top: 64px; bottom: auto; max-height: 26vh; }
+  .guide .steps { gap: 36px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fade, .fade.out, .cursor .ring { transition: none; }
+  .menu { animation: none; }
+}

@@ -1,0 +1,51 @@
+{
+  "_note": "Seed lists. Edit freely. Names are matched case-insensitively with punctuation ignored. 'crossover' artists split their vote so the song itself decides.",
+  "hindi_film": [
+    "Arijit Singh", "Pritam", "Armaan Malik", "Jubin Nautiyal", "Vishal Mishra", "Darshan Raval",
+    "Vishal and Sheykhar", "Vishal-Shekhar", "Vishal Dadlani", "Shekhar Ravjiani", "Meet Bros",
+    "MEET BROS ANJJAN", "Shreya Ghoshal", "Sonu Nigam", "Atif Aslam", "Neha Kakkar", "Tulsi Kumar",
+    "Sachet Tandon", "Parampara Thakur", "Sachin-Jigar", "Amit Trivedi", "Shankar-Ehsaan-Loy",
+    "A.R. Rahman", "Mithoon", "Ankit Tiwari", "Palak Muchhal", "KK", "Shaan", "Sunidhi Chauhan",
+    "Mohit Chauhan", "Rahat Fateh Ali Khan", "Kumar Sanu", "Udit Narayan", "Alka Yagnik", "Lata Mangeshkar",
+    "Kishore Kumar", "Mohammed Rafi", "Asees Kaur", "Stebin Ben", "B Praak", "Jaani", "Shashwat Sachdev",
+    "Tanishk Bagchi", "Rochak Kohli", "Amaal Mallik", "Papon", "Benny Dayal", "Javed Ali", "Monali Thakur"
+  ],
+  "punjabi": [
+    "Shubh", "Gurinder Gill", "Sidhu Moose Wala", "AP Dhillon", "Ammy Virk", "Kaka", "Jass Manak",
+    "Sharry Maan", "Gippy Grewal", "Harrdy Sandhu", "Jasmine Sandlas", "Nimrat Khaira", "Satinder Sartaaj",
+    "Babbu Maan", "Amrinder Gill", "Sunanda Sharma", "Mankirt Aulakh", "Parmish Verma", "Ninja", "Jazzy B",
+    "Prabh Gill", "Maninder Buttar", "Navaan Sandhu", "Tegi Pannu", "Jordan Sandhu", "Bohemia"
+  ],
+  "desi_hiphop": [
+    "Seedhe Maut", "Raftaar", "KR$NA", "KRSNA", "Divine", "Emiway Bantai", "MC Stan", "Kalamkaar", "Ikka",
+    "Fotty Seven", "Kunwarr", "Dishant", "Vishi", "Mr Maxxx", "Prathamesh", "MC Square", "Rawme Hooda",
+    "Naezy", "Young Stunners", "Talha Anjum", "Calm", "Encore ABJ", "Rapbot", "Bella", "Dee MC", "Hanumankind",
+    "Kod.E", "Rahul Shahani", "Devashish Korani", "Swarn Yadav", "King"
+  ],
+  "desi_hiphop:global": [
+    "Eminem", "Drake", "Travis Scott", "Kendrick Lamar", "Post Malone", "50 Cent", "Snoop Dogg", "Kanye West",
+    "JAY-Z", "Lil Wayne", "XXXTENTACION", "Juice WRLD", "Nicki Minaj", "Cardi B", "J. Cole", "Tyler, The Creator"
+  ],
+  "english": [
+    "The Weeknd", "Justin Bieber", "Charlie Puth", "Dua Lipa", "Ed Sheeran", "Taylor Swift", "Ariana Grande",
+    "Billie Eilish", "Bruno Mars", "Imagine Dragons", "Coldplay", "Maroon 5", "Selena Gomez", "Shawn Mendes",
+    "Sia", "Rihanna", "Adele", "Sam Smith", "Harry Styles", "Olivia Rodrigo", "Linkin Park", "The Chainsmokers",
+    "Marshmello", "Alan Walker", "Martin Garrix", "David Guetta", "Calvin Harris", "One Direction",
+    "Lady Gaga", "Katy Perry", "Lana Del Rey", "Doja Cat", "SZA", "Miley Cyrus", "Camila Cabello",
+    "Sabrina Carpenter", "Shakira", "Enrique Iglesias", "Jonas Brothers", "Halsey", "Zayn"
+  ],
+  "indie_pop": [
+    "Prateek Kuhad", "Anuv Jain", "The Local Train", "When Chai Met Toast", "Ritviz", "Zaeden", "Kushagra",
+    "Abhijay Sharma", "Ankur Tewari", "Taba Chake", "Raghav Chaitanya", "Dhruv", "Lifafa", "Faheem Abdullah"
+  ],
+  "crossover": {
+    "Yo Yo Honey Singh": ["punjabi", "desi_hiphop"],
+    "Badshah": ["desi_hiphop", "hindi_film"],
+    "Guru Randhawa": ["punjabi", "hindi_film"],
+    "Diljit Dosanjh": ["punjabi", "hindi_film"],
+    "Karan Aujla": ["punjabi", "desi_hiphop"],
+    "Honey Singh": ["punjabi", "desi_hiphop"],
+    "Sukh-E": ["punjabi", "hindi_film"],
+    "Jasleen Royal": ["indie_pop", "hindi_film"]
+  }
+}

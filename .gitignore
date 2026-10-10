@@ -1,0 +1,12 @@
+node_modules
+dist
+.DS_Store
+public/covers
+*.local
+__pycache__/
+*.pyc
+
+# Person 5 outputs (generated, may be licensed or large)
+pipeline/out/
+public/data/lyrics/
+public/artists/
