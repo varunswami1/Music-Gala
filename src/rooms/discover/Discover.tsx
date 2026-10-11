@@ -36,7 +36,7 @@ function DiscoverScene() {
 
   return (
     <group>
-      <WireBox size={[20, 7, 24]} position={[0, 3.5, -6]} />
+      <WireBox size={[20, 7, 24]} position={[0, 3.5, -2]} />
       <Text position={[0, 6, -11]} fontSize={0.5} letterSpacing={0.3} color="#ffffff">DISCOVER</Text>
       {shown.map((r, i) => {
         const a = (i - (shown.length - 1) / 2) * 0.42;           // fan out around the camera
@@ -56,7 +56,7 @@ function DiscoverScene() {
           {loading ? 'LOOKING…' : tab === 'new' && recs && !recs.outsideAvailable ? 'NO OUTSIDE SUGGESTIONS YET' : seedId ? 'NOTHING FITS THIS SONG YET' : 'NO SONG PICKED'}
         </Text>
       )}
-      <Door label="HEAVEN" position={[0, 0, 3]} rotation={[0, Math.PI, 0]} cursorLabel="BACK TO HEAVEN" onOpen={() => go(PATHS.heaven)} />
+      <Door label="HEAVEN" position={[0, 0, 10.2]} rotation={[0, Math.PI, 0]} cursorLabel="BACK TO HEAVEN" onOpen={() => go(PATHS.heaven)} />
     </group>
   );
 }

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../store/app';
 import { useLibrary } from '../data/library';
@@ -8,9 +9,27 @@ export function Fade({ phase }: { phase: Phase }) {
   return <div className={'fade' + (phase === 'out' ? ' out' : '')} aria-hidden="true" />;
 }
 
+const GLYPHS = '<\\/|-_';
+/** Bottom hint line. Shows the hovered object's name while the pointer is over one. Text scrambles in briefly, like the reference. */
 export function HintBar() {
   const hint = useApp((s) => s.hint);
-  return <div className="hintbar" aria-live="polite">{hint}</div>;
+  const hover = useApp((s) => s.hoverName);
+  const reduced = useApp((s) => s.reducedMotion);
+  const full = hover ? `${hover.toUpperCase()} · CLICK / ENTER TO OPEN` : hint;
+  const [shown, setShown] = useState(full);
+  useEffect(() => {
+    if (reduced || !full) { setShown(full); return; }
+    let f = 0, raf = 0;
+    const step = () => {
+      f += 1;
+      const keep = Math.floor((f / 14) * full.length);
+      setShown(full.slice(0, keep) + Array.from(full.slice(keep), (c) => (c === ' ' || c === '·' ? c : GLYPHS[Math.floor(Math.random() * GLYPHS.length)])).join(''));
+      if (keep < full.length) raf = requestAnimationFrame(step); else setShown(full);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [full, reduced]);
+  return <div className="hintbar" aria-live="polite" aria-label={full}>{shown}</div>;
 }
 
 /** Shows which 3D object has keyboard focus (the cursor label does this for the mouse). */

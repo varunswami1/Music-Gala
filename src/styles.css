@@ -27,11 +27,6 @@ button:disabled { opacity: .4; cursor: default; }
 .list { flex: 1; min-height: 0; overflow-y: auto; width: 100%; margin-top: 12px; padding-right: 6px; }
 .row { display: grid; grid-template-columns: 1fr 44px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #ffffff14; text-align: right; }
 .row:hover { background: #ffffff0d; } .row img { width: 44px; height: 44px; object-fit: cover; background: #111; } .row small { color: var(--dim); }
-.cursor { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 100; }
-.cursor .dot { position: absolute; width: 8px; height: 8px; margin: -4px; border-radius: 50%; background: #fff; }
-.cursor .ring { position: absolute; width: 46px; height: 46px; margin: -23px; border: 1px solid #fffa; border-radius: 50%; opacity: 0; transform: scale(.4); transition: .2s; }
-.cursor.active .ring { opacity: 1; transform: scale(1); }
-.cursor .clabel { position: absolute; left: 30px; top: -9px; white-space: nowrap; letter-spacing: .18em; font-size: 11px; text-transform: uppercase; text-shadow: 0 0 6px #000; }
 .no-cursor, .no-cursor * { cursor: none !important; }
 .no-cursor .panel .lyrics, .no-cursor .panel .list { cursor: auto !important; }
 .guide { position: fixed; inset: 0; z-index: 60; background: #000b; backdrop-filter: blur(8px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; }
@@ -49,7 +44,6 @@ button:disabled { opacity: .4; cursor: default; }
 .fade.out { opacity: 1; transition: opacity .24s ease-in; }
 /* drag-to-look */
 body.dragging, body.dragging * { user-select: none; }
-.dragging .cursor .ring { opacity: 1; transform: scale(.65); }
 /* bottom-left room tabs (from the reference lobby) */
 .tabs { position: absolute; left: 28px; bottom: 18px; display: flex; gap: 18px; font-size: 11px; letter-spacing: .2em; color: var(--dim); }
 .tabs a { padding: 4px 0; border-bottom: 1px solid transparent; } .tabs a:hover { color: #fff; }
@@ -90,3 +84,14 @@ body.dragging, body.dragging * { user-select: none; }
   .fade, .fade.out, .cursor .ring { transition: none; }
   .menu { animation: none; }
 }
+
+/* cursor (reference): small white dot, grows to a white disc with a black label over openable things */
+.cursor { position: fixed; left: 0; top: 0; z-index: 100; pointer-events: none; will-change: transform; transition: opacity .2s; }
+.cursor .blob { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; transition: width .22s ease, height .22s ease, left .22s ease, top .22s ease; }
+.cursor.active .blob { width: 72px; height: 72px; left: -36px; top: -36px; }
+.cursor .clabel { color: #000; font-size: 9px; letter-spacing: .3em; padding-left: .3em; opacity: 0; transition: opacity .15s; white-space: nowrap; }
+.cursor.active .clabel { opacity: 1; }
+.dragging .cursor .blob { width: 6px; height: 6px; left: -3px; top: -3px; }
+/* reference header: big, light MENU */
+.header .hbtn:last-child { font-size: 20px; letter-spacing: .3em; font-weight: 300; }
+@media (prefers-reduced-motion: reduce) { .cursor .blob { transition: none; } }

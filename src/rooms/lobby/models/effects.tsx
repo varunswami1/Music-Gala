@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { circleLines, type V3 } from './build';
+import { circleLines, gridLines, type V3 } from './build';
 import { useReducedMotion } from './motion';
 
 /** A flat circle outline on the floor (or at `position`). */
@@ -79,5 +79,17 @@ export function EqualizerScreen({ position, rotation = [0, 0, 0], size = [4, 2],
         <meshBasicMaterial color={color} transparent opacity={0.3} depthWrite={false} />
       </instancedMesh>
     </group>
+  );
+}
+
+/** Thin floor markings (a long aisle with cross lines). */
+export function FloorGrid({ width, depth, cols, rows, position, opacity = 0.18 }:
+  { width: number; depth: number; cols: number; rows: number; position: V3; opacity?: number }) {
+  const geo = useMemo(() => gridLines(width, depth, cols, rows), [width, depth, cols, rows]);
+  useEffect(() => () => geo.dispose(), [geo]);
+  return (
+    <lineSegments geometry={geo} position={position}>
+      <lineBasicMaterial color="#ffffff" transparent opacity={opacity} />
+    </lineSegments>
   );
 }

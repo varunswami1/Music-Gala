@@ -16,6 +16,8 @@ interface AppState {
   setCursorLabel: (s: string) => void;
   hint: string;                           // bottom-centre hint line, set per room
   setHint: (s: string) => void;
+  hoverName: string;                      // name of the 3D object under the pointer, shown in the hint line ('' = none)
+  setHoverName: (s: string) => void;
   focusLabel: string;                     // keyboard-focused 3D object, shown above the hint line ('' = none)
   setFocusLabel: (s: string) => void;
   guideOpen: boolean;
@@ -39,6 +41,8 @@ export const useApp = create<AppState>((set) => ({
   setCursorLabel: (cursorLabel) => set({ cursorLabel }),
   hint: '',
   setHint: (hint) => set({ hint }),
+  hoverName: '',
+  setHoverName: (hoverName) => set({ hoverName }),
   focusLabel: '',
   setFocusLabel: (focusLabel) => set({ focusLabel }),
   guideOpen: read('guideSeen') !== '1',

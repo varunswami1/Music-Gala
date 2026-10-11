@@ -1,7 +1,6 @@
 /* Styles for the Song and Artist room panels. Owner: Person 4 (kept out of styles.css, which Person 1 owns). */
-.sp-left, .sp-right { --tint: #fff; }
-.panel.left.sp-left { bottom: 176px; padding-left: 14px; border-left: 1px solid color-mix(in srgb, var(--tint) 55%, transparent); }
-.panel.right.sp-right { bottom: 176px; padding-right: 14px; border-right: 1px solid color-mix(in srgb, var(--tint) 55%, transparent); }
+.panel.left.sp-left { bottom: 176px; }
+.panel.right.sp-right { bottom: 176px; }
 .panel.left.sp-artist-left, .panel.right.sp-artist-right { bottom: 64px; }
 .panel .scroll { overflow-y: auto; min-height: 0; overscroll-behavior: contain; pointer-events: auto; }
 .panel .grow { flex: 1; }
@@ -10,7 +9,7 @@
 .panel .note { color: var(--dim); font-size: 11px; letter-spacing: .15em; text-transform: uppercase; }
 .panel .meta a { text-decoration: underline; text-underline-offset: 3px; }
 .lyrics { overscroll-behavior: contain; }
-.row[aria-current="true"] { border-left: 1px solid var(--tint, #fff); }
+.row[aria-current="true"] { border-left: 1px solid #fff; }
 
 /* player */
 .pl { width: 100%; margin-top: 12px; text-align: left; pointer-events: auto; }
@@ -32,10 +31,10 @@
 .pl-range::-moz-range-thumb { width: 9px; height: 9px; border-radius: 50%; background: #fff; border: 0; }
 
 /* similar songs strip */
-.sp-strip { position: absolute; left: 388px; right: 388px; bottom: 52px; height: 116px; pointer-events: auto; display: flex; flex-direction: column; --tint: #fff; }
+.sp-strip { position: absolute; left: 388px; right: 388px; bottom: 52px; height: 116px; pointer-events: auto; display: flex; flex-direction: column; }
 .sp-strip .tabs { display: flex; gap: 22px; margin-bottom: 6px; font-size: 11px; }
 .sp-strip .tabs button { color: var(--dim); padding: 2px 0; border-bottom: 1px solid transparent; }
-.sp-strip .tabs button[aria-selected="true"] { color: #fff; border-bottom-color: var(--tint); }
+.sp-strip .tabs button[aria-selected="true"] { color: #fff; border-bottom-color: #fff; }
 .sp-strip .track { flex: 1; min-height: 0; display: flex; gap: 12px; overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain; }
 .sp-strip .card { flex: 0 0 132px; display: grid; grid-template-columns: 44px 1fr; column-gap: 8px; align-content: start; min-width: 0; }
 .sp-strip .card:hover:not(.static) { background: #ffffff0d; }

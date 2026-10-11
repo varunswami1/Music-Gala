@@ -11,7 +11,7 @@ import { artistRoom } from './artist/ArtistRoom';
 import { playlistsRoom } from './heaven/Playlists';
 import { tasteRoom } from './taste/Taste';
 import { discoverRoom } from './discover/Discover';
-import { archiveRoom } from './stubs';
+import { archiveRoom } from './archive/Archive';
 
 export const ROOMS: RoomDef[] = [
   lobbyRoom, studioRoom, heavenRoom, libraryRoom, libraryRoomRoom,

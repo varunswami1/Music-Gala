@@ -27,11 +27,15 @@ interface ModelProps {
   phase?: number;
   /** Edge angle in degrees: smaller draws more lines on curved parts. */
   edgeAngle?: number;
+  /** Metres of gentle up-and-down floating (ignored with reduced motion). */
+  bob?: number;
+  /** Let scene fog fade this model (default true). Turn off for things that must stay visible from far away. */
+  fog?: boolean;
 }
 
 export function Model({
   kind, position = [0, 0, 0], rotation = [0, 0, 0], scale = 1, wire = true, wireOpacity = 0.5,
-  points = 0, pointSize = 0.02, color = '#ffffff', pointColor, seed = 1, spin = 0, sway = 0, phase = 0, edgeAngle = 20,
+  points = 0, pointSize = 0.02, color = '#ffffff', pointColor, seed = 1, spin = 0, sway = 0, phase = 0, edgeAngle = 20, bob = 0, fog = true,
 }: ModelProps) {
   const reduced = useReducedMotion();
   const group = useRef<THREE.Group>(null);
@@ -52,21 +56,22 @@ export function Model({
 
   useFrame((state) => {
     const g = group.current;
-    if (!g || reduced || (spin === 0 && sway === 0)) return;
+    if (!g || reduced || (spin === 0 && sway === 0 && bob === 0)) return;
     const t = state.clock.elapsedTime;
     g.rotation.y = rotation[1] + spin * t + sway * Math.sin(t * 0.5 + phase);
+    if (bob !== 0) g.position.y = position[1] + bob * Math.sin(t * 0.9 + phase);
   });
 
   return (
     <group ref={group} position={position} rotation={rotation} scale={scale}>
       {built.edges && (
         <lineSegments geometry={built.edges}>
-          <lineBasicMaterial color={color} transparent opacity={wireOpacity} />
+          <lineBasicMaterial color={color} transparent opacity={wireOpacity} fog={fog} />
         </lineSegments>
       )}
       {built.pts && (
         <points geometry={built.pts}>
-          <pointsMaterial color={pointColor ?? color} size={pointSize} sizeAttenuation transparent opacity={0.85} depthWrite={false} />
+          <pointsMaterial color={pointColor ?? color} size={pointSize} sizeAttenuation transparent opacity={0.85} depthWrite={false} fog={fog} />
         </points>
       )}
     </group>

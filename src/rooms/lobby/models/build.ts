@@ -116,3 +116,13 @@ export function circleLines(segments = 64): THREE.BufferGeometry {
   g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
   return g;
 }
+
+/** Flat grid of lines in the XZ plane (width x depth), `cols` x `rows` cells. Used for floor markings. */
+export function gridLines(width: number, depth: number, cols: number, rows: number): THREE.BufferGeometry {
+  const pts: number[] = [];
+  for (let i = 0; i <= cols; i++) { const x = -width / 2 + (i * width) / cols; pts.push(x, 0, -depth / 2, x, 0, depth / 2); }
+  for (let j = 0; j <= rows; j++) { const z = -depth / 2 + (j * depth) / rows; pts.push(-width / 2, 0, z, width / 2, 0, z); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pts), 3));
+  return g;
+}

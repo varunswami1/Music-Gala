@@ -74,12 +74,9 @@ export function frameLabel(name: string, max = 22): string {
   return t.length > max ? t.slice(0, max - 1).trimEnd() + '…' : t;
 }
 
-export const PAGE_SIZE = 8; // frames per page (2 rows of 4); the real library has ~40 playlists
-
-/** Which playlist is open and which page of frames is shown. Kept here because the contract has no playlist route (see CHANGELOG). */
-interface ViewState { selectedId: string | null; page: number; select: (id: string | null) => void; setPage: (p: number) => void }
+/** Which playlist is open. Kept here because the contract has no playlist route (see CHANGELOG). */
+interface ViewState { selectedId: string | null; selectedName: string; select: (id: string | null, name?: string) => void }
 export const usePlaylistView = create<ViewState>((set) => ({
-  selectedId: null, page: 0,
-  select: (selectedId) => set({ selectedId }),
-  setPage: (page) => set({ page: Math.max(0, page) }),
+  selectedId: null, selectedName: '',
+  select: (selectedId, selectedName = '') => set({ selectedId, selectedName: selectedId ? selectedName : '' }),
 }));

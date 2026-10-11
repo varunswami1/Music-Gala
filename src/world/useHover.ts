@@ -24,6 +24,7 @@ function useObjectId() {
 export function useHover(label: string, onActivate?: () => void, name?: string) {
   const [pointerHover, setHover] = useState(false);
   const setCursor = useApp((s) => s.setCursorLabel);
+  const setHoverName = useApp((s) => s.setHoverName);
   const on = useRef(false);
   const id = useObjectId();
   const activateRef = useRef(onActivate);
@@ -37,11 +38,11 @@ export function useHover(label: string, onActivate?: () => void, name?: string) 
     return registerInteractive({ id, label: accessibleName, activate: () => activateRef.current?.() });
   }, [id, interactive]); // eslint-disable-line react-hooks/exhaustive-deps -- label updates go through the next effect
   useEffect(() => { if (interactive) updateInteractiveLabel(id, accessibleName); }, [id, interactive, accessibleName]);
-  useEffect(() => () => { if (on.current) setCursor(''); clearHoveredInteractive(id); }, [setCursor, id]);
+  useEffect(() => () => { if (on.current) { setCursor(''); setHoverName(''); } clearHoveredInteractive(id); }, [setCursor, setHoverName, id]);
 
   const bind = {
-    onPointerOver: (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); on.current = true; setHover(true); setCursor(label); if (interactive) setHoveredInteractive(id); },
-    onPointerOut: () => { on.current = false; setHover(false); setCursor(''); clearHoveredInteractive(id); },
+    onPointerOver: (e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); on.current = true; setHover(true); setCursor(label); if (interactive) { setHoveredInteractive(id); setHoverName(accessibleName); } },
+    onPointerOut: () => { on.current = false; setHover(false); setCursor(''); setHoverName(''); clearHoveredInteractive(id); },
   };
   return { hover: pointerHover || focused, focused, bind };
 }

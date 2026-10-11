@@ -8,11 +8,11 @@ export interface CameraProfile {
   move: boolean;      // scroll-to-move allowed (turn off where the wheel already means something, e.g. the card ring)
   moveMin: number;    // how far back / forward the camera may travel along the room's view direction (world units)
   moveMax: number;
-  maxYaw: number;     // radians of left/right look (Infinity = full turn)
+  maxYaw: number;     // radians of left/right look either way (Math.PI = can look straight behind)
   maxPitch: number;   // radians of up/down look
 }
 
-export const DEFAULT_PROFILE: CameraProfile = { drag: true, move: true, moveMin: -1, moveMax: 4, maxYaw: 1.25, maxPitch: 0.5 };
+export const DEFAULT_PROFILE: CameraProfile = { drag: true, move: true, moveMin: -1, moveMax: 4, maxYaw: Math.PI, maxPitch: 0.5 };
 
 /** Per-room tuning, keyed by RoomDef.id. A room can also override at runtime: useRoomCamera(..., { move: false }). */
 export const ROOM_PROFILES: Record<string, Partial<CameraProfile>> = {

@@ -2,6 +2,7 @@ import { Suspense, useEffect, useLayoutEffect, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import type { PerspectiveCamera } from 'three';
 import { Atmosphere } from './Atmosphere';
+import { TransitionDirector } from './TransitionDirector';
 import { findRoom } from '../rooms/registry';
 import { cam, kickPush, PUSH_IN, PUSH_OUT, setCameraRoom, setPushTarget, stepCamera } from './cameraInput';
 import { useCameraInput } from './useCameraInput';
@@ -65,6 +66,7 @@ export function WorldCanvas({ shownPath, phase }: { shownPath: string; phase: Ph
         <color attach="background" args={['#000000']} />
         <fog attach="fog" args={['#000000', 9, 42]} />
         <CameraRig phase={phase} />
+        <TransitionDirector />
         <QualityGuard />
         <Atmosphere />
         <Suspense fallback={null}>

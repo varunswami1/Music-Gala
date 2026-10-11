@@ -1,135 +1,217 @@
-// The cylindrical ring of song cards (the one design kept from the TasteMap prototype). Owner: Person 3.
-// Interaction: wheel or ← → rotate, ↑ ↓ switch cluster, hover pops a card (title + artist), double-click opens the song.
-// Scale: songs are grouped into clusters (by artist / year / all) of at most 54 cards and ONLY the current cluster is drawn,
-// so a 6,000-song library costs the same as a 54-song one (docs/DESIGN.md §8). Textures are created per visible card and
-// disposed when the cluster changes. Shared geometry is module-level; nothing else is allocated per card.
-import { useEffect, useMemo, useRef } from 'react';
+// Round room of album cards, built as LAYERS: albums behind albums. Owner: Person 3.
+// Each layer (cluster of <= 54 songs) is a ring of cards; further layers sit at a bigger radius behind the front one, offset
+// by half a card so they peek through the gaps. Keyboard only (no wheel, no zoom):
+//   ← → turn the ring   ↑ ↓ send the front layer back / bring the next one forward   G change grouping
+// The eye is at the middle row, so you never have to look up or down. Only ~3 layers (<=162 cards) are mounted.
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import type { Song } from '../../contract/types';
 import { to } from '../../contract/routes';
-import { useApp, useHint } from '../../store/app';
+import { useHint } from '../../store/app';
 import { useCover } from '../../world/Poster';
 import { useHover } from '../../world/useHover';
-import { buildClusters } from './clusters';
+import { buildClusters, type Cluster } from './clusters';
 import { useRing } from './ringStore';
-import { prefersReducedMotion } from './motion';
+import { isTyping, prefersReducedMotion } from './motion';
+import { tunnelGo } from './tunnel';
 
-const MAX_COLS = 18, MIN_COLS = 8, MAX_ROWS = 3, W = 1.6, ROW_GAP = 0.3, R = 6.2, CENTER_Y = 2.9;
-const PLANE = new THREE.PlaneGeometry(W, W);
-const FRAME = new THREE.EdgesGeometry(new THREE.PlaneGeometry(W + 0.1, W + 0.1));
+const R0 = 5.6, GAP = 2.7;                 // front radius, extra radius per layer behind
+const CARD = 1.25, PITCH = 1.5;            // card size, row spacing
+export const RING_EYE_Y = 2.2;             // camera height = middle row, so no head tilt is needed
+const MAX_COLS = 18, MIN_COLS = 8, MAX_ROWS = 3;
+const TAU = Math.PI * 2;
+const PLANE = new THREE.PlaneGeometry(CARD, CARD);
+const FRAME = new THREE.EdgesGeometry(new THREE.PlaneGeometry(CARD + 0.08, CARD + 0.08));
+const WHITE = new THREE.Color('#ffffff');
 
-const typing = (e: KeyboardEvent) => {
-  const t = e.target as HTMLElement | null;
-  return !!t && (/INPUT|TEXTAREA|SELECT/.test(t.tagName) || t.isContentEditable);
+interface LayerState { k: number; R: number; opacity: number; dim: number }
+
+const layoutOf = (n: number) => {
+  const cols = Math.min(MAX_COLS, Math.max(MIN_COLS, Math.ceil(n / MAX_ROWS)));
+  return { cols, rows: Math.max(1, Math.ceil(n / cols)) };
 };
-const overPanel = (e: Event) => !!(e.target as HTMLElement | null)?.closest?.('.panel');
+/** Angle of card i in layer k. Odd layers are shifted half a card ("bricks") so they show through the gaps in front. */
+const angleOf = (k: number, i: number, cols: number) => (((i % cols) + (k % 2) * 0.5) / cols) * TAU;
+const rowY = (i: number, cols: number, rows: number) => RING_EYE_Y + ((rows - 1) / 2 - Math.floor(i / cols)) * PITCH;
 const hue = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 
-interface RingCardProps { song: Song; angle: number; y: number; accent: string; onOpen: () => void }
+interface RingCardProps { song: Song; layer: number; i: number; cols: number; rows: number; st: LayerState; accent: string; onBring: () => void }
 
-function RingCard({ song, angle, y, accent, onOpen }: RingCardProps) {
+function RingCard({ song, layer, i, cols, rows, st, accent, onBring }: RingCardProps) {
   const artist = song.artistNames.join(', ') || 'Unknown artist';
   const tex = useCover(song.coverUrl);
   const { hover, bind } = useHover(`${song.title} · ${artist}`);
+  const pinned = useRing((s) => s.pinnedId === song.id);
+  const outer = useRef<THREE.Group>(null);
   const pop = useRef<THREE.Group>(null);
+  const mat = useRef<THREE.MeshBasicMaterial>(null);
+  const line = useRef<THREE.LineBasicMaterial>(null);
+  const angle = useMemo(() => angleOf(layer, i, cols), [layer, i, cols]);
+  const y = rowY(i, cols, rows);
+  const base = useMemo(() => (tex ? WHITE : new THREE.Color(`hsl(${hue(song.title)}, 35%, 16%)`)), [tex, song.title]);
+  const active = hover || pinned;
+
   useFrame(() => {
-    const g = pop.current; if (!g) return;
-    const k = hover ? 1 : 0;
-    g.position.z = THREE.MathUtils.lerp(g.position.z, k * 0.6, 0.18);   // local +z points to the room centre
-    g.scale.setScalar(THREE.MathUtils.lerp(g.scale.x, 1 + k * 0.18, 0.18));
+    const o = outer.current, p = pop.current, m = mat.current, l = line.current;
+    if (!o || !p || !m || !l) return;
+    o.position.set(Math.sin(angle) * st.R, y, -Math.cos(angle) * st.R);
+    o.visible = st.opacity > 0.01;
+    const front = st.dim > 0.9;
+    const k = active && (front || pinned) ? 1 : 0;
+    p.position.z = THREE.MathUtils.lerp(p.position.z, k * (pinned ? 1.8 : 0.6), 0.18);     // local +z points to the room centre
+    p.scale.setScalar(THREE.MathUtils.lerp(p.scale.x, 1 + k * (pinned ? 0.5 : 0.18), 0.18));
+    m.color.copy(base).multiplyScalar(st.dim * (active ? 1 : 0.8));
+    m.opacity = st.opacity;
+    l.opacity = st.opacity * (active ? 1 : 0.45) * Math.min(1, st.dim * 1.4);
   });
+
   return (
-    <group position={[Math.sin(angle) * R, y, -Math.cos(angle) * R]} rotation={[0, -angle, 0]}>
+    <group ref={outer} position={[Math.sin(angle) * st.R, y, -Math.cos(angle) * st.R]} rotation={[0, -angle, 0]}>
       <group ref={pop}>
-        <mesh geometry={PLANE} {...bind} onDoubleClick={(e) => { e.stopPropagation(); onOpen(); }}>
-          {tex
-            ? <meshBasicMaterial key="tex" map={tex} color={hover ? '#ffffff' : '#bdbdbd'} />
-            : <meshBasicMaterial key="none" color={`hsl(${hue(song.title)}, 35%, ${hover ? 24 : 16}%)`} />}
+        <mesh geometry={PLANE} {...bind}
+          raycast={function (this: THREE.Mesh, rc: THREE.Raycaster, hits: THREE.Intersection[]) {
+            if (st.opacity > 0.05) THREE.Mesh.prototype.raycast.call(this, rc, hits);   // faded-out layers must not catch the pointer
+          }}
+          onClick={(e) => { e.stopPropagation(); onBring(); }}
+          onDoubleClick={(e) => { e.stopPropagation(); tunnelGo(to.song(song.id), song.title); }}>
+          <meshBasicMaterial key={tex ? 'tex' : 'none'} ref={mat} map={tex ?? null} transparent opacity={0} />
         </mesh>
         <lineSegments geometry={FRAME} position-z={0.01}>
-          <lineBasicMaterial color={accent} transparent opacity={hover ? 1 : 0.5} />
+          <lineBasicMaterial ref={line} color={accent} transparent opacity={0} />
         </lineSegments>
-        {hover && (
-          <Text position={[0, -W / 2 - 0.12, 0.02]} fontSize={0.13} letterSpacing={0.06} color="#ffffff" anchorY="top"
-            textAlign="center" maxWidth={W + 1.4}>{`${song.title}\n${artist}`}</Text>
+        {active && (
+          <Text position={[0, -CARD / 2 - 0.12, 0.02]} fontSize={0.13} letterSpacing={0.06} color="#ffffff" anchorY="top"
+            textAlign="center" maxWidth={CARD + 1.4}>{`${song.title}\n${artist}`}</Text>
         )}
       </group>
     </group>
   );
 }
 
+function Layer({ k, cluster, registry, accent, onBring }: { k: number; cluster: Cluster; registry: MutableRefObject<Set<LayerState>>; accent: string; onBring: (k: number) => void }) {
+  const { cols, rows } = layoutOf(cluster.songs.length);
+  const st = useMemo<LayerState>(() => ({ k, R: R0 + k * GAP, opacity: 0, dim: 1 }), [k]);
+  useEffect(() => { registry.current.add(st); return () => { registry.current.delete(st); }; }, [st, registry]);
+  return (
+    <group>
+      {cluster.songs.map((s, i) => (
+        <RingCard key={s.id} song={s} layer={k} i={i} cols={cols} rows={rows} st={st} accent={accent} onBring={() => onBring(k)} />
+      ))}
+    </group>
+  );
+}
+
 export function CardRing({ songs, accent }: { songs: Song[]; accent: string }) {
-  const go = useApp((s) => s.go);
   const mode = useRing((s) => s.mode);
   const index = useRing((s) => s.index);
+  const focusId = useRing((s) => s.focusId);
+  const pending = useRing((s) => s.pendingFocus);
+  const pinnedId = useRing((s) => s.pinnedId);
   const clusters = useMemo(() => buildClusters(songs, mode), [songs, mode]);
 
-  // Publish cluster list to the HTML controls; clear it when the ring goes away.
   useEffect(() => {
-    useRing.getState().setClusters(clusters.map((c) => ({ id: c.id, label: c.label, count: c.songs.length })));
-  }, [clusters]);
+    const r = useRing.getState();
+    r.setClusters(clusters.map((c) => ({ id: c.id, label: c.label, count: c.songs.length })));
+    r.setPool(songs);
+  }, [clusters, songs]);
   useEffect(() => () => useRing.getState().reset(), []);
 
   const page = Math.min(Math.max(0, index), Math.max(0, clusters.length - 1));
   const cluster = clusters[page];
-  const n = cluster?.songs.length ?? 0;
-  const cols = Math.min(MAX_COLS, Math.max(MIN_COLS, Math.ceil(n / MAX_ROWS)));
-  const rows = Math.max(1, Math.ceil(n / cols));
+  const front = layoutOf(cluster?.songs.length ?? 0);
+  const colsRef = useRef(front.cols); colsRef.current = front.cols;
 
-  const colsRef = useRef(cols); colsRef.current = cols;
   const group = useRef<THREE.Group>(null);
-  const target = useRef(0), current = useRef(0), intro = useRef(0);
+  const registry = useRef(new Set<LayerState>());
+  const target = useRef(0), current = useRef(0), pos = useRef(page), intro = useRef(0);
   const reduce = useMemo(prefersReducedMotion, []);
 
-  useHint(clusters.length > 1
-    ? `SCROLL OR ← → ROTATE · ↑ ↓ NEXT CLUSTER (${page + 1}/${clusters.length}) · DOUBLE-CLICK A CARD TO OPEN`
-    : 'SCROLL OR ← → ROTATE · DOUBLE-CLICK A CARD TO OPEN');
+  // Keep the layer that was just sent back mounted while it dissolves.
+  const lastPage = useRef(page);
+  const [leaving, setLeaving] = useState<number | null>(null);
+  useEffect(() => {
+    const prev = lastPage.current; lastPage.current = page;
+    if (page === prev + 1) { setLeaving(prev); const t = setTimeout(() => setLeaving(null), 900); return () => clearTimeout(t); }
+    setLeaving(null);
+  }, [page]);
 
-  useEffect(() => { target.current = 0; current.current = 0; intro.current = 0; }, [cluster?.id]);
+  // New grouping / new songs: start clean.
+  useEffect(() => { pos.current = page; target.current = 0; current.current = 0; intro.current = 0; }, [clusters]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Search: bring a song to the front (works for requests made before this room opened, too).
+  useEffect(() => {
+    const id = focusId ?? pending;
+    if (!id || clusters.length === 0) return;
+    let found = false;
+    for (let ci = 0; ci < clusters.length && !found; ci++) {
+      const i = clusters[ci].songs.findIndex((s) => s.id === id);
+      if (i < 0) continue;
+      found = true;
+      const { cols } = layoutOf(clusters[ci].songs.length);
+      const a = angleOf(ci, i, cols);
+      target.current = a + TAU * Math.round((current.current - a) / TAU);   // world angle is a - rotation, so rotation = a puts it in front
+      useRing.setState({ index: ci, focusId: null, pendingFocus: null, pinnedId: id });
+    }
+    if (!found) useRing.setState({ focusId: null, pendingFocus: null });
+  }, [focusId, pending, clusters]);
+  useEffect(() => {
+    if (!pinnedId) return;
+    const t = setTimeout(() => { if (useRing.getState().pinnedId === pinnedId) useRing.setState({ pinnedId: null }); }, 6000);
+    return () => clearTimeout(t);
+  }, [pinnedId]);
+
+  useHint(cluster
+    ? `${cluster.label}  ${page + 1}/${clusters.length}  ·  ← → TURN  ·  ↑ ↓ LAYERS  ·  G GROUP  ·  / SEARCH`
+    : '');
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
-      if (typing(e) || e.metaKey || e.ctrlKey || e.altKey) return;
-      const step = (2 * Math.PI) / colsRef.current;
+      if (isTyping(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+      const step = TAU / colsRef.current;
       const ring = useRing.getState();
-      if (e.key === 'ArrowLeft') target.current += step;
-      else if (e.key === 'ArrowRight') target.current -= step;
-      else if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); ring.setIndex(ring.index + 1); }
-      else if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); ring.setIndex(ring.index - 1); }
+      const k = e.key.toLowerCase();
+      if (k === 'arrowleft' || k === 'a') target.current += step;
+      else if (k === 'arrowright' || k === 'd') target.current -= step;
+      else if (k === 'arrowdown' || k === 's' || k === 'pagedown') { e.preventDefault(); useRing.setState({ index: Math.min(ring.clusters.length - 1, ring.index + 1) }); }
+      else if (k === 'arrowup' || k === 'w' || k === 'pageup') { e.preventDefault(); useRing.setState({ index: Math.max(0, ring.index - 1) }); }
+      else if (k === 'g') ring.cycleMode();
     };
-    // Never rotate the world while the pointer is over a scrollable HTML panel.
-    const wheel = (e: WheelEvent) => { if (!overPanel(e)) target.current -= e.deltaY * 0.0015; };
     window.addEventListener('keydown', key);
-    window.addEventListener('wheel', wheel, { passive: true });
-    return () => { window.removeEventListener('keydown', key); window.removeEventListener('wheel', wheel); };
+    return () => window.removeEventListener('keydown', key);
   }, []);
 
   useFrame((_, dt) => {
     const g = group.current; if (!g) return;
+    if (reduce || Math.abs(page - pos.current) > 1.6) pos.current = page;
+    else pos.current += (page - pos.current) * (1 - Math.exp(-dt * 5.5));
+    if (Math.abs(page - pos.current) < 0.002) pos.current = page;
     if (reduce) { current.current = target.current; intro.current = 1; }
     else {
       current.current += (target.current - current.current) * (1 - Math.exp(-dt * 6));
-      intro.current = Math.min(1, intro.current + dt * 2.5);
+      intro.current = Math.min(1, intro.current + dt * 2.2);
     }
     g.rotation.y = current.current;
-    const e = 1 - Math.pow(1 - intro.current, 3);
-    g.scale.setScalar(0.85 + 0.15 * e);
+    registry.current.forEach((st) => {
+      const d = st.k - pos.current;
+      st.R = d >= 0 ? R0 + d * GAP : R0 + d * 1.6;                       // passed layers glide toward the viewer while fading
+      const vis = d < 0 ? clamp01(1 + d / 0.6) : d > 2.4 ? clamp01(1 - (d - 2.4) / 0.8) : 1;
+      st.opacity = vis * intro.current;
+      st.dim = d <= 0 ? 1 : 1 / (1 + 0.9 * d);                           // layers further back are darker
+    });
   });
 
   if (!cluster) {
-    return <Text position={[0, 2.5, -5]} fontSize={0.25} letterSpacing={0.15} color="#8a8a8a">NO SONGS HERE YET</Text>;
+    return <Text position={[0, RING_EYE_Y, -5]} fontSize={0.25} letterSpacing={0.15} color="#8a8a8a">NO SONGS HERE YET</Text>;
   }
+  const mounted = [page, page + 1, page + 2].filter((k) => k < clusters.length);
+  if (leaving !== null && leaving < clusters.length && !mounted.includes(leaving)) mounted.push(leaving);
+  const bring = (k: number) => { if (k !== useRing.getState().index) useRing.setState({ index: k }); };
   return (
     <group ref={group}>
-      {cluster.songs.map((s, i) => {
-        const col = i % cols, row = Math.floor(i / cols);
-        return (
-          <RingCard key={s.id} song={s} accent={accent} angle={(col / cols) * Math.PI * 2}
-            y={CENTER_Y + ((rows - 1) / 2 - row) * (W + ROW_GAP)} onOpen={() => go(to.song(s.id))} />
-        );
-      })}
+      {mounted.map((k) => <Layer key={clusters[k].id} k={k} cluster={clusters[k]} registry={registry} accent={accent} onBring={bring} />)}
     </group>
   );
 }

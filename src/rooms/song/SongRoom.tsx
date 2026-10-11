@@ -10,40 +10,38 @@ import { useApp, useHint } from '../../store/app';
 import { useLibraryData } from '../../data/library';
 import { getLyrics, type Lyrics } from '../../data/lyrics';
 import { canControl, toggleActivePlayback, usePlayback } from '../../audio/songPlayer';
-import { useRoomCamera } from '../../world/useRoomCamera';
 import { Door } from '../../world/Door';
-import { RoundRoom, doorAt } from './RoundRoom';
+import { RoundRoom, doorAt, ROOM_CAMERA, COVER_SIZE } from './RoundRoom';
+import { useLookCamera } from './useLookCamera';
 import { PlayerPanel } from './PlayerPanel';
 import { SimilarStrip } from './SimilarStrip';
-import { useCoverTint } from './useCoverTint';
 import './roundRoom.css';
 
 function useSong(songId: string | undefined) {
   const lib = useLibraryData();
   const song = lib?.songsById.get(songId ?? '');
   const room = lib?.rooms.find((r) => r.id === song?.roomId);
-  const tint = useCoverTint(song?.coverUrl, room?.accent ?? '#ffffff');
-  return { lib, song, room, tint };
+  return { lib, song, room };
 }
 
 function SongScene({ params }: RoomProps) {
   const go = useApp((s) => s.go);
-  const { lib, song, tint } = useSong(params.songId);
+  const { lib, song } = useSong(params.songId);
   const status = usePlayback((s) => s.status);
   const canPlay = !!song?.youtubeId && canControl(status);
-  useRoomCamera([0, 1.7, 7], [0, 2.2, -5], 0.3);
-  useHint(song?.youtubeId ? 'MOVE THE MOUSE TO LOOK · CLICK THE COVER OR PRESS SPACE TO PLAY / PAUSE' : 'MOVE THE MOUSE TO LOOK · USE A DOOR TO LEAVE');
+  useLookCamera(ROOM_CAMERA.position, ROOM_CAMERA.look, 0.25);
+  useHint(song?.youtubeId ? 'DRAG OR USE ← → TO LOOK AROUND · SPACE PLAYS / PAUSES · DOORS ARE TO YOUR LEFT AND RIGHT' : 'DRAG OR USE ← → TO LOOK AROUND · DOORS ARE TO YOUR LEFT AND RIGHT');
   if (!song) return lib ? <Text position={[0, 2, -4]} fontSize={0.25} color="#8a8a8a">SONG NOT FOUND</Text> : null;
   const artistId = song.artistIds.find((id) => lib?.artistsById.has(id));
-  const left = doorAt(-32), right = doorAt(32);
+  const left = doorAt(-110), right = doorAt(110);
   return (
     <RoundRoom
-      word={song.title} title={song.title} image={song.coverUrl} size={3.4} tint={tint}
+      word={song.title} title={song.title} image={song.coverUrl} size={COVER_SIZE}
       caption={`${song.title} · ${song.artistNames.join(', ') || 'Unknown artist'}`}
-      playing={status === 'playing'} posterLabel={canPlay ? (status === 'playing' || status === 'buffering' ? 'PAUSE' : 'PLAY') : ''} onPoster={toggleActivePlayback}
+      posterLabel={canPlay ? (status === 'playing' || status === 'buffering' ? 'PAUSE' : 'PLAY') : ''} onPoster={toggleActivePlayback}
     >
-      <Door label="BACK TO LIBRARY" {...right} accent={tint} cursorLabel="BACK TO LIBRARY" onOpen={() => go(PATHS.library)} />
-      {artistId && <Door label="VIEW ARTIST" {...left} accent={tint} cursorLabel="VIEW ARTIST" onOpen={() => go(to.artist(artistId))} />}
+      <Door label="BACK TO LIBRARY" {...right} cursorLabel="BACK TO LIBRARY" onOpen={() => go(PATHS.library)} />
+      {artistId && <Door label="VIEW ARTIST" {...left} cursorLabel="VIEW ARTIST" onOpen={() => go(to.artist(artistId))} />}
     </RoundRoom>
   );
 }
@@ -69,15 +67,14 @@ function LyricsPanel({ songId }: { songId: string }) {
 }
 
 function SongPanels({ params }: RoomProps) {
-  const { lib, song, room, tint } = useSong(params.songId);
+  const { lib, song, room } = useSong(params.songId);
   if (!lib) return null;
   if (!song) return <div className="panel left"><div className="eyebrow">SONG NOT FOUND</div><p className="note">THIS LINK DOES NOT MATCH ANY SONG IN THE LIBRARY</p><Link className="btn" to={PATHS.library}>BACK TO LIBRARY</Link></div>;
   const artist = lib.artistsById.get(song.artistIds[0] ?? '');
   const firstName = artist?.name ?? song.artistNames[0];
-  const style = { ['--tint' as string]: tint };
   return (
     <>
-      <aside className="panel left sp-left" style={style}>
+      <aside className="panel left sp-left">
         <div className="eyebrow">{room?.displayName ?? 'SONG'} · SONG{song.needsReview ? ' · DETAILS UNCONFIRMED' : ''}</div>
         <h1>{song.title}</h1>
         <div>
@@ -96,7 +93,7 @@ function SongPanels({ params }: RoomProps) {
         </div>
         <LyricsPanel key={song.id} songId={song.id} />
       </aside>
-      <aside className="panel right sp-right" style={style}>
+      <aside className="panel right sp-right">
         <div className="eyebrow">ARTIST</div>
         <h1>{firstName ?? 'Unknown artist'}</h1>
         <div className="bio scroll" tabIndex={0} role="region" aria-label="Artist biography" onWheel={(e) => e.stopPropagation()} style={{ flex: '1 1 0', maxHeight: 120 }}>
@@ -105,7 +102,7 @@ function SongPanels({ params }: RoomProps) {
         {artist && <Link className="btn" to={to.artist(artist.id)}>VIEW ARTIST</Link>}
         <PlayerPanel key={song.id} youtubeId={song.youtubeId} />
       </aside>
-      <SimilarStrip key={song.id} song={song} tint={tint} />
+      <SimilarStrip key={song.id} song={song} />
     </>
   );
 }

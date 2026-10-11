@@ -32,20 +32,7 @@ export function useRecommendations(song: Song | undefined, enabled: boolean): Re
     setState({ status: 'loading' });
     load()
       .then((m) => (m.getRecommendations ? m.getRecommendations(song) : Promise.reject(new Error('missing export'))))
-      .then((res: any) => {
-        if (!live) return;
-        const list = Array.isArray(res) ? res : Array.isArray(res?.outside) ? res.outside : [];
-        const items: Recommendation[] = list.map((r: any) => ({
-          title: r.title,
-          artistName: r.artistName || r.artist || 'Unknown artist',
-          reason: r.reason || 'Recommended',
-          inLibrary: !!r.inLibrary,
-          songId: r.songId || undefined,
-          youtubeId: r.youtubeId || null,
-          coverUrl: r.coverUrl || null,
-        }));
-        setState({ status: 'ok', items });
-      })
+      .then((items) => { if (live) setState({ status: 'ok', items }); })
       .catch(() => { if (live) setState({ status: 'unavailable', reason: 'RECOMMENDATIONS COULD NOT BE LOADED' }); });
     return () => { live = false; };
   }, [song, enabled]);

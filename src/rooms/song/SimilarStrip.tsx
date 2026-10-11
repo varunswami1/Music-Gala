@@ -11,13 +11,13 @@ function Thumb({ url, title }: { url?: string | null; title: string }) {
   return url ? <img src={url} alt="" loading="lazy" /> : <span className="ph" aria-hidden="true">{title.trim().charAt(0).toUpperCase() || '·'}</span>;
 }
 
-export function SimilarStrip({ song, tint }: { song: Song; tint: string }) {
+export function SimilarStrip({ song }: { song: Song }) {
   const lib = useLibraryData();
   const [tab, setTab] = useState<'library' | 'new'>('library');
   const similar = useMemo(() => (lib ? rankSimilar(song, lib.songs) : []), [lib, song]);
   const recs = useRecommendations(song, tab === 'new');
   return (
-    <section className="sp-strip" aria-label="Similar songs" style={{ ['--tint' as string]: tint }}>
+    <section className="sp-strip" aria-label="Similar songs">
       <div className="tabs" role="tablist">
         <button role="tab" aria-selected={tab === 'library'} onClick={() => setTab('library')}>FROM LIBRARY</button>
         <button role="tab" aria-selected={tab === 'new'} onClick={() => setTab('new')}>NEW</button>

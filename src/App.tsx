@@ -10,6 +10,9 @@ import { CustomCursor } from './ui/CustomCursor';
 import { ControlsOverlay } from './ui/ControlsOverlay';
 import { InteractionGuide } from './ui/InteractionGuide';
 import { Fade, FocusLabel, HintBar, LoadState, NotFound } from './ui/Misc';
+import { Warp } from './ui/Warp';
+import { HeavenNav, TunnelOverlay } from './rooms/heaven/nav';
+import { runTransition } from './world/transition';
 import { useApp, useSyncReducedMotion } from './store/app';
 import { useLibrary } from './data/library';
 import { initAmbient } from './audio/ambient';
@@ -28,7 +31,7 @@ export default function App() {
   const hit = findRoom(shown);
   const Panels = hit?.room.Panels;
 
-  useEffect(() => { setGo((p) => navigate(p)); }, [navigate, setGo]);
+  useEffect(() => { setGo((p) => runTransition(p, navigate)); }, [navigate, setGo]);
   useEffect(() => { load(); initAmbient(); }, [load]);
   useEffect(() => {
     const m = matchPath(PATHS.song, pathname);
@@ -41,6 +44,7 @@ export default function App() {
       <WorldCanvas shownPath={shown} phase={phase} />
       <div className="overlay">
         <Header />
+        <HeavenNav />
         <ObjectNav />
         {hit ? Panels && <Panels params={hit.params} /> : <NotFound />}
         <HintBar />
@@ -51,6 +55,8 @@ export default function App() {
       </div>
       <InteractionGuide />
       <Fade phase={phase} />
+      <TunnelOverlay />
+      <Warp />
       <CustomCursor />
     </>
   );

@@ -1,0 +1,19 @@
+/* Heaven navigation bar, breadcrumb and search. Owner: Person 3. */
+.hnav { position: absolute; top: 60px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; }
+.hnav nav { display: flex; gap: 30px; pointer-events: auto; }
+.hnav nav button { font-size: 11px; letter-spacing: .3em; color: #6f6f6f; padding: 4px 0; border-bottom: 1px solid transparent; }
+.hnav nav button:hover { color: #fff; }
+.hnav nav button[aria-current="page"] { color: #fff; border-bottom-color: #fff; }
+.hcrumb { font-size: 10px; letter-spacing: .25em; color: #8a8a8a; text-transform: uppercase; pointer-events: auto; }
+.hcrumb button { color: #8a8a8a; letter-spacing: .25em; text-decoration: underline; text-underline-offset: 4px; }
+.hcrumb button:hover { color: #fff; }
+.hcrumb b { color: #e8e8e8; font-weight: 400; }
+.hsearch { position: absolute; top: 62px; left: 28px; width: 240px; pointer-events: auto; z-index: 5; }
+.hsearch input { width: 100%; background: transparent; border: 0; border-bottom: 1px solid #ffffff40; color: #fff; font: inherit; letter-spacing: .2em; padding: 6px 0; outline: none; text-transform: uppercase; }
+.hsearch input::placeholder { color: #6f6f6f; }
+.hsearch input:focus { border-bottom-color: #fff; }
+.hresults { margin-top: 6px; background: #000d; border: 1px solid var(--line); max-height: 50vh; overflow-y: auto; }
+.hresults button { display: block; width: 100%; text-align: left; padding: 8px 10px; letter-spacing: .08em; font-size: 11px; color: #cfcfcf; border-bottom: 1px solid #ffffff14; }
+.hresults button[aria-selected="true"], .hresults button:hover { background: #fff; color: #000; }
+.hresults small { display: block; opacity: .6; letter-spacing: .1em; }
+@media (max-width: 900px) { .hnav nav { gap: 14px; } .hsearch { width: 150px; } }
