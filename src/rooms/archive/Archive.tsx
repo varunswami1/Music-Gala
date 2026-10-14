@@ -25,11 +25,70 @@ interface LogEntry {
 
 const TIMELINE_DATA: LogEntry[] = [
   {
+    id: 'iter-3',
+    version: 'Iteration 3 (Current)',
+    date: 'October 14, 2026',
+    title: 'Round Colonnades, Slit Portals & Offline Recommendations',
+    badge: 'LATEST UPDATE',
+    summary:
+      'Grand architectural upgrade across all 5 domains: Taste and Discover become domed colonnade halls, glowing slit portals with forward-facing transit, 3-track ambient audio switcher, full 360° directional navigation, and offline profile-derived recommendations.',
+    details: [
+      {
+        role: 'Data & Environment',
+        person: 'Person 5',
+        changes: [
+          'Classical Colonnade hall with 16 pillars, architrave, dome ribs with oculus, and concentric floor rings.',
+          'Taste room equipped with turntable, grand piano, violin, audience point clouds, release skyline, and artist canvases.',
+          'Discover room with 360° colonnade, hanging suggestions (±105°), headphones, boombox, cassette, and armillary globe.',
+          'Glowing slit wall doors and corrected camera travel direction during transit.',
+          'Offline recommendation engine using YouTube Music profile metadata (no API keys required).',
+        ],
+      },
+      {
+        role: 'Lobby & Studio',
+        person: 'Person 2',
+        changes: [
+          '360° look and direction-relative walking navigation with A/D sidestep.',
+          'Expanded props: drum kit, cello, saxophone, lounge sofa, vinyl racks, and hanging cone lamps.',
+          'Elevated Studio portal up 4 stairs on a raised platform.',
+          'Architectural back-wall typography: "EST. 2026" and "SOMAY · VARUN".',
+        ],
+      },
+      {
+        role: 'Heaven & Corridors',
+        person: 'Person 3',
+        changes: [
+          'Extended CardRing radius (9.5) displaying up to 216 album covers across 3 layers with continuous 360° rotation.',
+          'Decorated corridors with light-strip pillars, walking dot-cloud visitors, and hanging cover frames.',
+          'Architectural arrival vestibules expanding from narrow entries into expansive galleries.',
+        ],
+      },
+      {
+        role: 'Song & Artist Rooms',
+        person: 'Person 4',
+        changes: [
+          'True cylinder wireframe with 192 perimeter segments and 48 uprights.',
+          'Curved artwork hanging planes with double curved trim.',
+          'Level-horizon free look camera preventing roll distortion.',
+          'Ambient soundscape selector (DEEP HALL, NIGHT RAIN, GLASS PADS) with persistent memory.',
+        ],
+      },
+      {
+        role: 'Shell & UI',
+        person: 'Person 1',
+        changes: [
+          'Full-screen minimalist editorial word menu with crossed-out current room and focus trap.',
+          'Continuous 360° unclamped view navigation and smooth wall-sliding collision physics.',
+        ],
+      },
+    ],
+  },
+  {
     id: 'iter-2',
-    version: 'Iteration 2 (Current)',
+    version: 'Iteration 2',
     date: 'October 11, 2026',
     title: 'Architectural Realism & Visual Overhaul',
-    badge: 'LATEST UPDATE',
+    badge: 'MILESTONE',
     summary:
       'Major overhaul aligning the entire world with the architectural reference site (virtuallyeverafter). Massive scale expansions, 360° camera wrap, layered multi-depth card ring, walk-in glass studio booth with moving singers, and cinematic warp transitions.',
     details: [

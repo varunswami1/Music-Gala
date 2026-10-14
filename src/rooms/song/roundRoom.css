@@ -23,7 +23,7 @@
 .pl-vol { display: flex; align-items: center; gap: 10px; color: var(--dim); letter-spacing: .2em; font-size: 11px; margin-top: 6px; }
 .pl-vol .pl-range { flex: 1; }
 .pl-status { height: 16px; margin-top: 4px; color: var(--dim); letter-spacing: .2em; font-size: 10px; }
-.pl-range { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; background: transparent; cursor: pointer; margin: 0; }
+.pl-range { -webkit-appearance: none; appearance: none; width: 100%; height: 22px; background: transparent; cursor: pointer; margin: 0; }
 .pl-range:disabled { opacity: .35; cursor: default; }
 .pl-range::-webkit-slider-runnable-track { height: 1px; background: #ffffff66; }
 .pl-range::-moz-range-track { height: 1px; background: #ffffff66; }
@@ -45,3 +45,10 @@
 .sp-strip .empty { color: var(--dim); font-size: 11px; letter-spacing: .15em; margin: 12px 0; }
 @media (max-width: 1100px) { .sp-strip { left: 28px; right: 28px; } .panel.left.sp-left, .panel.right.sp-right { bottom: 176px; } }
 @media (max-width: 900px) { .sp-strip { position: static; margin: 16px 28px; } .pl-video { height: 200px; } }
+
+/* keyboard focus and touch comfort (WCAG 2.4.7 / 2.5.5) */
+.panel a:focus-visible, .panel button:focus-visible, .sp-strip a:focus-visible, .sp-strip button:focus-visible, .pl-btn:focus-visible { outline: 1px solid #fff; outline-offset: 3px; }
+.pl-range:focus-visible { outline: 1px solid #fff; outline-offset: 4px; }
+.sp-strip .tabs button { padding: 8px 0; }
+.pl-range { height: 22px; }
+@media (prefers-reduced-motion: reduce) { .sp-strip .track, .panel .scroll { scroll-behavior: auto; } }

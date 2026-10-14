@@ -57,16 +57,22 @@ interface Props {
   position: V3; rotation?: V3;
   accent?: string;
   caption?: string;
+  fallbackText?: string;         // shown on the blank canvas when there is no image and no collage (default: the first letter)
   hoverLabel?: string;
+  ceiling?: number | null;       // world y of the ceiling; the frame hangs from it on two wires and sways a little. null = no wires
   onOpen?: () => void;
 }
 
-export function CanvasFrame({ title, imageUrl, collage = [], maxTiles = 8, width = 6, height = 3.6, position, rotation = [0, 0, 0], accent = '#ffffff', caption, hoverLabel = '', onOpen }: Props) {
+export function CanvasFrame({ title, imageUrl, collage = [], maxTiles = 8, width = 6, height = 3.6, position, rotation = [0, 0, 0], accent = '#ffffff', caption, fallbackText, hoverLabel = '', ceiling = 7.4, onOpen }: Props) {
   const { tex, failed } = useImage(imageUrl);
   useMemo(() => { if (tex) coverFit(tex, width, height); }, [tex, width, height]);
   const { hover, bind } = useHover(onOpen ? hoverLabel || 'OPEN' : '');
-  const grp = useRef<THREE.Group>(null);
-  useFrame(() => { if (grp.current) grp.current.scale.setScalar(THREE.MathUtils.lerp(grp.current.scale.x, hover && onOpen ? 1.025 : 1, 0.15)); });
+  const grp = useRef<THREE.Group>(null), sway = useRef<THREE.Group>(null);
+  const L = ceiling == null ? 0 : Math.max(0.6, ceiling - (position[1] + height / 2));   // wire length from the top edge to the ceiling
+  const phase = useMemo(() => Math.random() * 6, []);
+  const wires = useMemo(() => new THREE.BufferGeometry().setFromPoints([-1, 1].flatMap((sx) => [new THREE.Vector3(sx * (width / 2 - 0.25), height / 2, 0.01), new THREE.Vector3(sx * (width / 2 - 0.25), height / 2 + L, 0.01)])), [width, height, L]);
+  useFrame(({ clock }) => { if (sway.current && L > 0) { const t = clock.getElapsedTime() + phase; sway.current.rotation.z = Math.sin(t * 0.5) * 0.006; sway.current.rotation.x = Math.sin(t * 0.37) * 0.004; }
+    if (grp.current) grp.current.scale.setScalar(THREE.MathUtils.lerp(grp.current.scale.x, hover && onOpen ? 1.025 : 1, 0.15)); });
   const edge = useMemo(() => new THREE.EdgesGeometry(new THREE.PlaneGeometry(width, height)), [width, height]);
   const edge2 = useMemo(() => new THREE.EdgesGeometry(new THREE.PlaneGeometry(width + 0.28, height + 0.28)), [width, height]);
   const tiles = useMemo(() => [...new Set(collage)].slice(0, maxTiles), [collage, maxTiles]);
@@ -75,7 +81,9 @@ export function CanvasFrame({ title, imageUrl, collage = [], maxTiles = 8, width
   const shown = showCollage ? tiles.slice(0, cols * rows) : [];
   const tw = width / cols, th = height / rows;
   return (
-    <group position={position} rotation={rotation}>
+    <group position={[position[0], position[1] + height / 2 + L, position[2]]} rotation={rotation}>
+      <group ref={sway}><group position-y={-(L + height / 2)}>
+      {L > 0 && <lineSegments geometry={wires}><lineBasicMaterial color={accent} transparent opacity={0.45} /></lineSegments>}
       <group ref={grp}>
         <mesh {...bind} onClick={(e) => { e.stopPropagation(); if (e.delta > 6) return; onOpen?.(); }}>
           <planeGeometry args={[width, height]} />
@@ -85,12 +93,15 @@ export function CanvasFrame({ title, imageUrl, collage = [], maxTiles = 8, width
           <Tile key={u} url={u} w={tw} h={th} x={-width / 2 + tw * (i % cols) + tw / 2} y={height / 2 - th * Math.floor(i / cols) - th / 2} />
         ))}
         {!tex && !showCollage && failed && (
-          <Text position={[0, 0, 0.01]} fontSize={height * 0.5} color="#2a2a2a" anchorX="center" anchorY="middle">{(title.trim()[0] ?? '·').toUpperCase()}</Text>
+          fallbackText
+            ? <Text position={[0, 0, 0.01]} fontSize={Math.min(width, height) * 0.1} letterSpacing={0.05} color="#bdbdbd" anchorX="center" anchorY="middle" maxWidth={width * 0.8} textAlign="center">{fallbackText}</Text>
+            : <Text position={[0, 0, 0.01]} fontSize={height * 0.5} color="#2a2a2a" anchorX="center" anchorY="middle">{(title.trim()[0] ?? '·').toUpperCase()}</Text>
         )}
         <lineSegments geometry={edge} position-z={0.01}><lineBasicMaterial color={accent} transparent opacity={hover ? 1 : 0.8} /></lineSegments>
         <lineSegments geometry={edge2} position-z={0.01}><lineBasicMaterial color={accent} transparent opacity={0.3} /></lineSegments>
         {caption && <Text position={[-width / 2, -height / 2 - 0.3, 0.01]} fontSize={Math.max(0.14, height * 0.06)} letterSpacing={0.1} color="#9a9a9a" anchorX="left" anchorY="top" maxWidth={width}>{caption.toUpperCase()}</Text>}
       </group>
+      </group></group>
     </group>
   );
 }

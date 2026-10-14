@@ -1,9 +1,9 @@
-// Door-to-room transition: zoom into the clicked door, line/dot tunnel, arrive in the new room (reference: virtuallyeverafter).
+// Door-to-room transition: fly through the slit of the clicked door into light, then arrive in the new room (reference: virtuallyeverafter).
 // Shared module state (not React state) so the 3D canvas and the 2D overlay can both read it every frame.
 import * as THREE from 'three';
 
 export type Phase = 'idle' | 'out' | 'hold' | 'in';
-export const OUT = 750, HOLD = 520, IN = 850;   // ms: zoom into door, tunnel, arrive
+export const OUT = 950, HOLD = 280, IN = 950;   // ms: fly through the slit, light, arrive
 
 export const tx = {
   phase: 'idle' as Phase,

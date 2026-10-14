@@ -1,8 +1,11 @@
 // Recommendation service. Owner: Person 5.
 // Two lists for a song, matching the "From library / New" tabs:
-//   fromLibrary: songs you already have, scored from shared artist, scene, tags and era (computed here, always available)
-//   outside:     songs NOT in the library, each with a reason (precomputed by scripts/build_recs.py into public/data/recommendations.json;
-//                the API keys stay on your machine). Each is marked inLibrary, computed here against the current library.
+//   fromLibrary: songs you already have, scored from shared artist, related artists, scene, tags and era (computed here)
+//   outside:     songs/artists NOT in the library, each with a reason, read from public/data/recommendations.json:
+//                  byArtist  made OFFLINE by scripts/build_recs_from_profiles.py from the YouTube Music profile data (no key needed)
+//                  bySong    made by scripts/build_recs.py from Last.fm (needs your key); wins over byArtist when present
+//                  related   library artists related to each artist, used to rank "From library"
+//                Each outside item is marked inLibrary, computed here against the current library.
 import type { Library, Song } from '../contract/types';
 
 export interface Rec {
@@ -14,11 +17,12 @@ export interface Rec {
   coverUrl: string | null;
   youtubeId: string | null;
   source: string;              // where the suggestion came from, e.g. "Last.fm similar tracks"
+  kind: 'song' | 'artist';     // 'artist' = an artist worth exploring (title is the artist's name), not a single song
 }
 export interface Recommendations { fromLibrary: Rec[]; outside: Rec[]; outsideAvailable: boolean }
 
-interface RawRec { title?: unknown; artist?: unknown; reason?: unknown; youtubeId?: unknown; coverUrl?: unknown; source?: unknown }
-type RecFile = Record<string, RawRec[]>; // keyed by seed song id
+interface RawRec { kind?: unknown; title?: unknown; artist?: unknown; reason?: unknown; youtubeId?: unknown; coverUrl?: unknown; source?: unknown }
+interface RecFile { byArtist: Record<string, RawRec[]>; bySong: Record<string, RawRec[]>; related: Record<string, string[]> }
 
 /** Same normalisation as the Python pipeline, so title/artist matching agrees on both sides. */
 export function norm(s: string): string {
@@ -38,19 +42,25 @@ async function loadFile(): Promise<RecFile | null> {
       // The dev server answers unknown paths with index.html (status 200), so check that this really is JSON.
       if (!res.ok || !(res.headers.get('content-type') ?? '').includes('json')) return null;
       const raw = await res.json();
-      return raw && typeof raw === 'object' && !Array.isArray(raw) ? (raw as RecFile) : null;
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+      const r = raw as Partial<RecFile> & Record<string, unknown>;
+      // older files were just {songId: [...]}: treat those as bySong
+      if (!r.byArtist && !r.bySong && !r.related) return { byArtist: {}, bySong: r as unknown as RecFile['bySong'], related: {} };
+      return { byArtist: r.byArtist ?? {}, bySong: r.bySong ?? {}, related: r.related ?? {} };
     } catch { return null; }
   })().then((f) => (file = f));
   return loading;
 }
 
 /** Songs already in the library that fit `seed`, best first. Every item carries the reason it was picked. */
-export function similarFromLibrary(lib: Library, seed: Song, limit = 12): Rec[] {
+export function similarFromLibrary(lib: Library, seed: Song, limit = 12, related: string[] = []): Rec[] {
   const seedTags = new Set([...seed.tags, ...seed.genreTags].map((t) => t.toLowerCase()));
   const scored: { s: Song; score: number; why: string[] }[] = [];
   for (const s of lib.songs) {
     if (s.id === seed.id) continue;
     let score = 0; const why: string[] = [];
+    const rel = s.artistIds.find((a) => related.includes(a));
+    if (rel) { score += 3.5; why.push(`by ${s.artistNames[s.artistIds.indexOf(rel)] ?? 'a related artist'}, related to ${seed.artistNames[0] ?? 'this artist'}`); }
     const sharedArtist = s.artistIds.find((a) => seed.artistIds.includes(a));
     if (sharedArtist) { score += 5; why.push(`same artist, ${s.artistNames[s.artistIds.indexOf(sharedArtist)] ?? 'shared'}`); }
     const tags = [...s.tags, ...s.genreTags].map((t) => t.toLowerCase()).filter((t) => seedTags.has(t));
@@ -64,62 +74,48 @@ export function similarFromLibrary(lib: Library, seed: Song, limit = 12): Rec[] 
   scored.sort((a, b) => b.score - a.score || Number(!!b.s.coverUrl) - Number(!!a.s.coverUrl));
   return scored.slice(0, limit).map(({ s, why }) => ({
     title: s.title, artist: s.artistNames.join(', '), reason: why.join(' · ') || 'similar to this song',
-    inLibrary: true, songId: s.id, coverUrl: s.coverUrl, youtubeId: s.youtubeId, source: 'Your library',
+    inLibrary: true, songId: s.id, coverUrl: s.coverUrl, youtubeId: s.youtubeId, source: 'Your library', kind: 'song',
   }));
 }
 
-/** Suggestions from outside the library for `seed`. Empty (and outsideAvailable=false) when build_recs.py has not been run. */
-async function similarOutside(lib: Library, seed: Song, limit: number): Promise<{ items: Rec[]; available: boolean }> {
-  const f = await loadFile();
+/** Suggestions from outside the library for `seed`. Empty (and available=false) when no recommendations.json exists. */
+async function similarOutside(lib: Library, seed: Song, limit: number, f: RecFile | null): Promise<{ items: Rec[]; available: boolean }> {
   if (!f) return { items: [], available: false };
-  const owned = new Map<string, Song>();
-  for (const s of lib.songs) owned.set(key(s.title, s.artistNames[0] ?? ''), s);
-  const items: Rec[] = [];
-  for (const r of f[seed.id] ?? []) {
+  const owned = new Map<string, Song>(), ownedYt = new Map<string, Song>();
+  for (const s of lib.songs) { owned.set(key(s.title, s.artistNames[0] ?? ''), s); if (s.youtubeId) ownedYt.set(s.youtubeId, s); }
+  const raw: RawRec[] = [...(f.bySong[seed.id] ?? [])];
+  for (const a of seed.artistIds) for (const r of f.byArtist[a] ?? []) raw.push(r);
+  const items: Rec[] = [], seen = new Set<string>();
+  for (const r of raw) {
     const title = clean(r.title), artist = clean(r.artist);
     if (!title || !artist) continue;
-    const mine = owned.get(key(title, artist));
+    const kind = r.kind === 'artist' ? 'artist' : 'song';
+    const k = key(title, artist); if (seen.has(k)) continue; seen.add(k);
+    const yt = clean(r.youtubeId);
+    const mine = kind === 'song' ? ((yt ? ownedYt.get(yt) : undefined) ?? owned.get(k)) : undefined;
     items.push({
-      title, artist, reason: clean(r.reason) ?? 'similar listeners also play this',
+      title, artist, kind, reason: clean(r.reason) ?? 'similar listeners also play this',
       inLibrary: !!mine, songId: mine?.id ?? null,
-      coverUrl: clean(r.coverUrl) ?? mine?.coverUrl ?? null, youtubeId: clean(r.youtubeId), source: clean(r.source) ?? 'Recommendation service',
+      coverUrl: clean(r.coverUrl) ?? mine?.coverUrl ?? null, youtubeId: yt, source: clean(r.source) ?? 'Recommendation service',
     });
   }
   return { items: items.slice(0, limit), available: true };
 }
 
-export async function getRecommendations(lib: Library, seed: Song, limit?: number): Promise<Recommendations>;
-export async function getRecommendations(seed: Song, limit?: number): Promise<Rec[]>;
-export async function getRecommendations(
-  libOrSeed: Library | Song,
-  seedOrLimit?: Song | number,
-  limit = 12
-): Promise<Recommendations | Rec[]> {
-  if (libOrSeed && 'songs' in (libOrSeed as any)) {
-    const lib = libOrSeed as Library;
-    const seed = seedOrLimit as Song;
-    const maxItems = typeof limit === 'number' ? limit : 12;
-    const out = await similarOutside(lib, seed, maxItems);
-    return { fromLibrary: similarFromLibrary(lib, seed, maxItems), outside: out.items, outsideAvailable: out.available };
-  } else {
-    const seed = libOrSeed as Song;
-    const maxItems = typeof seedOrLimit === 'number' ? seedOrLimit : limit;
-    const f = await loadFile();
-    if (!f) return [];
-    const items: Rec[] = [];
-    for (const r of f[seed.id] ?? []) {
-      const title = clean(r.title), artist = clean(r.artist);
-      if (!title || !artist) continue;
-      items.push({
-        title, artist, reason: clean(r.reason) ?? 'similar listeners also play this',
-        inLibrary: false, songId: null,
-        coverUrl: clean(r.coverUrl), youtubeId: clean(r.youtubeId), source: clean(r.source) ?? 'Recommendation service',
-      });
-    }
-    return items.slice(0, maxItems);
-  }
+/** True when the offline/Last.fm data has "New" suggestions for this song (lets the Discover room offer these as seeds first). */
+export function hasOutside(seed: Song): boolean {
+  const f = file; if (!f) return false;
+  return (f.bySong[seed.id]?.length ?? 0) > 0 || seed.artistIds.some((a) => (f.byArtist[a]?.length ?? 0) > 0);
+}
+export const warmRecommendations = () => loadFile().then(() => undefined);
+
+export async function getRecommendations(lib: Library, seed: Song, limit = 12): Promise<Recommendations> {
+  const f = await loadFile();
+  const related = seed.artistIds.flatMap((a) => f?.related[a] ?? []);
+  const out = await similarOutside(lib, seed, limit, f);
+  return { fromLibrary: similarFromLibrary(lib, seed, limit, related), outside: out.items, outsideAvailable: out.available };
 }
 
 /** Link to search for a suggestion on YouTube Music. Opens the official site; nothing is played or extracted here. */
-export const searchUrl = (r: Pick<Rec, 'title' | 'artist'>) =>
-  `https://music.youtube.com/search?q=${encodeURIComponent(`${r.title} ${r.artist}`)}`;
+export const searchUrl = (r: Pick<Rec, 'title' | 'artist' | 'kind'>) =>
+  `https://music.youtube.com/search?q=${encodeURIComponent(r.kind === 'artist' ? r.title : `${r.title} ${r.artist}`)}`;

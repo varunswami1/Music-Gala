@@ -83,7 +83,11 @@ def main(argv=None):
     finally:
         cache.save()
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out).write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")
+    prev = {}
+    if Path(args.out).exists():                                            # keep byArtist/related from build_recs_from_profiles.py
+        try: prev = json.loads(Path(args.out).read_text(encoding="utf-8"))
+        except Exception: prev = {}
+    Path(args.out).write_text(json.dumps({"byArtist": prev.get("byArtist", {}), "related": prev.get("related", {}), "bySong": result}, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {args.out}: {len(result)} of {len(seeds)} seeds have suggestions, {failed} to retry")
 
 

@@ -5,7 +5,8 @@ import type { RoomDef, RoomProps, Song } from '../../contract/types';
 import { PATHS } from '../../contract/routes';
 import { useLibraryData } from '../../data/library';
 import { WireCylinder } from '../../world/Wire';
-import { CardRing, RING_EYE_Y } from './CardRing';
+import { CardRing, RING_EYE_Y, RING_RADIUS } from './CardRing';
+import { RoomVestibule } from './Vestibule';
 import { useFixedCamera } from './camera';
 
 const NONE: Song[] = []; // stable reference so the ring does not re-group on every render
@@ -19,7 +20,8 @@ function LibraryRoomScene({ params }: RoomProps) {
   const songs = (room && lib?.songsByRoom.get(room.id)) || NONE;
   return (
     <group>
-      <WireCylinder radius={15} height={7.5} position={[0, 3.75, 0]} color={room?.accent ?? '#ffffff'} opacity={0.25} />
+      <WireCylinder radius={RING_RADIUS} height={8} position={[0, 4, 0]} color={room?.accent ?? '#ffffff'} opacity={0.25} segments={48} />
+      <RoomVestibule wallZ={RING_RADIUS} />
       {!lib && <Text position={[0, RING_EYE_Y, -5]} fontSize={0.25} color="#8a8a8a">LOADING…</Text>}
       {lib && !room && <Text position={[0, RING_EYE_Y, -5]} fontSize={0.25} color="#8a8a8a">UNKNOWN ROOM</Text>}
       {room && <CardRing songs={songs} accent={room.accent} />}

@@ -1,8 +1,8 @@
 // LOBBY. Owner: Person 2.
-// Borrowed from the reference (docs/reference/05-lobby): the long hall with dotted columns, a roof of trusses, tall windows,
-// a big lit screen at the far end with the door in front of it, and floating door signs. Instruments, text and models are our own.
-// You WALK in this room (scroll / W S A D); pinch-zoom is blocked, see models/useWalk.ts.
-import { Link } from 'react-router-dom';
+// Borrowed from the reference (docs/reference/05-lobby and the screen recordings): the long hall with dotted columns, a roof of
+// trusses, tall windows, a big lit screen at the far end with the gate in front of it, the Studio gate up a short flight of stairs
+// on the side, floating door signs, and a tunnel of light when you go through a gate. Instruments, text and models are our own.
+// You WALK and LOOK AROUND (scroll / W S A D / drag), there are no buttons: you leave through the gates. See models/useWalk.ts.
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import type { RoomDef } from '../../contract/types';
@@ -14,14 +14,30 @@ import { Door } from '../../world/Door';
 import { Model } from './models/Model';
 import { EqualizerScreen, FloorGrid, FloorPulse, Ring } from './models/effects';
 import { clamp, useWalk } from './models/useWalk';
+import { Tunnel, useGate } from './models/transition';
 import type { V3 } from './models/build';
 
-const COLUMN_Z = [6, -2, -10, -18, -26, -34];
-const START: V3 = [0, 1.7, 12];
+const COLUMN_Z = [6, -2, -10, -18, -26, -38];
+const START: V3 = [0, 1.7, 10];
+const STAIRS_Z = -32;               // the Studio stairs, up the left wall
+const STAIRS_X = -4.8;              // where the first step starts
+const MAIN_GATE_Z = -38;
 
-function constrainLobby(p: THREE.Vector3) {
+function constrainLobby(p: THREE.Vector3, prev: THREE.Vector3) {
+  const onStairsRow = Math.abs(prev.z - STAIRS_Z) < 1.4;   // only enter the stairs from the aisle at their row
+  if (p.x < -3.2 && (onStairsRow || prev.x < -3.2)) {
+    p.z = clamp(p.z, STAIRS_Z - 1.4, STAIRS_Z + 1.4);
+    p.x = Math.max(p.x, -9.0);
+    return;
+  }
   p.x = clamp(p.x, -3.2, 3.2);
-  p.z = clamp(p.z, -34, 12);
+  p.z = clamp(p.z, -35, 10.5);
+}
+
+/** Height of the floor: four steps up, then the platform in front of the Studio gate. */
+function lobbyGround(x: number, z: number) {
+  if (x < STAIRS_X && Math.abs(z - STAIRS_Z) < 1.8) return Math.min(1.2, 0.3 * (Math.floor((STAIRS_X - x) / 0.48) + 1));
+  return 0;
 }
 
 /** An exhibit: a big floating instrument, a ring on the floor under it, and a caption. */
@@ -41,13 +57,15 @@ function Exhibit({ label, kind, position, facing, scale, points, ringRadius, cap
 function LobbyScene() {
   const go = useApp((s) => s.go);
   const lib = useLibraryData();
-  useWalk({ start: START, constrain: constrainLobby });
-  useHint('SCROLL OR W / S TO WALK · MOVE THE MOUSE TO LOOK · CLICK A DOOR');
+  const enter = useGate(go);
+  useWalk({ start: START, constrain: constrainLobby, ground: lobbyGround });
+  useHint('SCROLL OR W / S TO WALK · DRAG OR ← → TO LOOK AROUND · WALK INTO A GATE');
   const songs = lib?.songs.length ?? 0;
 
   return (
     <group>
       <fog attach="fog" args={['#000000', 14, 95]} />
+      <Tunnel />
 
       {/* the hall: walls, roof trusses, tall windows, a column on each side every 8 m, floor markings */}
       <WireBox size={[20, 8.4, 64]} position={[0, 4.2, -18]} opacity={0.3} />
@@ -62,9 +80,9 @@ function LobbyScene() {
       ))}
       <FloorGrid width={6.8} depth={52} cols={4} rows={13} position={[0, 0.012, -14]} />
 
-      {/* the big screen at the end of the hall, with the gallery door standing in front of it */}
+      {/* the big screen at the end of the hall, with the main gate standing in front of it */}
       <EqualizerScreen position={[0, 4.4, -44]} size={[16, 7.5]} bars={56} />
-      <FloorPulse position={[0, 0.02, -40]} maxRadius={9} />
+      <FloorPulse position={[0, 0.02, MAIN_GATE_Z]} maxRadius={9} />
 
       {/* title block */}
       <Text position={[0, 6.7, -2]} fontSize={1.5} letterSpacing={0.3} color="#ffffff">MUSIC GALLERY</Text>
@@ -79,26 +97,52 @@ function LobbyScene() {
       <Exhibit label="PIANO" kind="piano" position={[4.8, 0.1, -9]} facing={-0.8} scale={2.2} points={3600} ringRadius={3.6} captionZ={4.2} sway={0.1} bob={0.06} seed={11} />
       <Exhibit label="TURNTABLE" kind="turntable" position={[-4.8, 0.1, -9]} facing={0.8} scale={2.2} points={2400} ringRadius={2.4} captionZ={3} sway={0.12} bob={0.06} phase={3} seed={14} />
 
+      {/* more of the hall: drums, cello, a sax in the air, benches, record racks, amps, music stands, lamps */}
+      <Model kind="drumKit" position={[5.2, 0.05, -18]} rotation={[0, -0.9, 0]} scale={2} points={1800} sway={0.08} bob={0.05} wireOpacity={0.5} pointSize={0.03} seed={81} />
+      <Model kind="cello" position={[-5, 0.05, -18]} rotation={[0, 0.6, 0]} scale={1.9} points={1500} sway={0.15} bob={0.06} phase={1} wireOpacity={0.5} pointSize={0.03} seed={82} />
+      <Model kind="saxophone" position={[4.6, 0.8, -25]} rotation={[0, -0.7, 0]} scale={2.1} points={1200} sway={0.25} bob={0.15} phase={2} wireOpacity={0.5} pointSize={0.03} seed={83} />
+      <Model kind="bench" position={[-4.4, 0, -14]} rotation={[0, 0.4, 0]} scale={2} wireOpacity={0.5} />
+      <Model kind="bench" position={[4.4, 0, -14]} rotation={[0, -0.4, 0]} scale={2} wireOpacity={0.5} />
+      <Model kind="vinylRack" position={[-9.5, 0, -10]} rotation={[0, Math.PI / 2, 0]} scale={1.6} wireOpacity={0.5} />
+      <Model kind="vinylRack" position={[9.5, 0, -10]} rotation={[0, -Math.PI / 2, 0]} scale={1.6} wireOpacity={0.5} />
+      <Model kind="vinylRack" position={[-9.5, 0, -18]} rotation={[0, Math.PI / 2, 0]} scale={1.6} wireOpacity={0.5} />
+      <Model kind="vinylRack" position={[9.5, 0, -18]} rotation={[0, -Math.PI / 2, 0]} scale={1.6} wireOpacity={0.5} />
+      <Model kind="ampStack" position={[-5, 0, -36]} rotation={[0, 0.5, 0]} scale={1.8} wireOpacity={0.55} />
+      <Model kind="ampStack" position={[5, 0, -36]} rotation={[0, -0.5, 0]} scale={1.8} wireOpacity={0.55} />
+      <Model kind="musicStand" position={[3.6, 0, -4.5]} rotation={[0, -0.5, 0]} scale={1.8} wireOpacity={0.5} />
+      <Model kind="musicStand" position={[-3.6, 0, -4.5]} rotation={[0, 0.5, 0]} scale={1.8} wireOpacity={0.5} />
+      {[-4, -16, -28].map((z) => <Model key={z} kind="coneLamp" position={[0, 6.7, z]} scale={3} wireOpacity={0.5} fog={false} />)}
+
       {/* things that hang in the air and keep moving */}
       <Model kind="headphones" position={[0, 5.2, -14]} scale={3.2} points={900} spin={0.4} bob={0.25} wireOpacity={0.7} pointSize={0.03} seed={21} />
       <Model kind="record" position={[-3.5, 6.4, -22]} rotation={[0.5, 0, 0.3]} scale={2.4} spin={0.5} bob={0.2} phase={1} wireOpacity={0.4} />
       <Model kind="record" position={[4.2, 6.8, -28]} rotation={[0.4, 0, -0.25]} scale={2} spin={-0.4} bob={0.2} phase={2} wireOpacity={0.4} />
       <Model kind="record" position={[-4, 5.6, -32]} rotation={[0.3, 0, 0.2]} scale={1.8} spin={0.35} bob={0.15} phase={4} wireOpacity={0.35} />
 
-      <Door label="ENTER THE GALLERY" sublabel="HEAVEN" position={[0, 0, -40]} size={[3.8, 5.4]} cursorLabel="ENTER GALLERY" onOpen={() => go(PATHS.heaven)} />
-      <Door label="STUDIO" sublabel="RECORDING ROOM" position={[-9.7, 0, -14]} rotation={[0, Math.PI / 2, 0]} size={[3.2, 5]} cursorLabel="ENTER STUDIO" onOpen={() => go(PATHS.studio)} />
+      {/* behind you: the grand entrance, a quiet line of text, a sofa, record racks and amps */}
+      <Model kind="arch" position={[0, 0, 13.6]} points={1400} pointSize={0.03} wireOpacity={0.3} seed={90} />
+      <Text position={[0, 7.4, 13.5]} rotation={[0, Math.PI, 0]} fontSize={1.5} letterSpacing={0.35} color="#2e2e2e">MUSIC GALLERY</Text>
+      <Text position={[0, 6.3, 13.5]} rotation={[0, Math.PI, 0]} fontSize={0.26} letterSpacing={0.5} color="#3a3a3a">YOUR LIBRARY · YOUR ROOMS</Text>
+      <Text position={[0, 5.8, 13.5]} rotation={[0, Math.PI, 0]} fontSize={0.15} letterSpacing={0.6} color="#333333">EST. 2026</Text>
+      <Model kind="sofa" position={[0, 0, 12.6]} scale={2} wireOpacity={0.5} />
+      <Model kind="vinylRack" position={[-6.4, 0, 13.6]} rotation={[0, Math.PI, 0]} scale={1.6} wireOpacity={0.5} />
+      <Model kind="vinylRack" position={[6.4, 0, 13.6]} rotation={[0, Math.PI, 0]} scale={1.6} wireOpacity={0.5} />
+      <Model kind="ampStack" position={[-3.8, 0, 13.2]} rotation={[0, Math.PI, 0]} scale={1.8} wireOpacity={0.55} />
+      <Model kind="ampStack" position={[3.8, 0, 13.2]} rotation={[0, Math.PI, 0]} scale={1.8} wireOpacity={0.55} />
+      <Model kind="bench" position={[-4.4, 0, 9]} rotation={[0, Math.PI - 0.3, 0]} scale={2} wireOpacity={0.5} />
+      <Model kind="bench" position={[4.4, 0, 9]} rotation={[0, Math.PI + 0.3, 0]} scale={2} wireOpacity={0.5} />
+
+      {/* the Studio gate: up a short flight of stairs on the left wall, close to the main gate */}
+      <Model kind="stairs" position={[STAIRS_X, 0, STAIRS_Z]} points={1600} pointSize={0.03} wireOpacity={0.55} seed={95} />
+      <Door label="STUDIO" sublabel="RECORDING ROOM" position={[-9.7, 1.2, STAIRS_Z]} rotation={[0, Math.PI / 2, 0]} size={[3.2, 5]} cursorLabel="ENTER STUDIO"
+        onOpen={() => enter(PATHS.studio, [-10.3, 2.9, STAIRS_Z])} />
+
+      {/* the main gate */}
+      <Door label="ENTER THE GALLERY" sublabel="HEAVEN" position={[0, 0, MAIN_GATE_Z]} size={[3.8, 5.4]} cursorLabel="ENTER GALLERY"
+        onOpen={() => enter(PATHS.heaven, [0, 1.7, MAIN_GATE_Z - 1.5])} />
     </group>
   );
 }
 
-/** Plain links for keyboard and touch users: the 3D doors have no keyboard access yet. */
-function LobbyPanels() {
-  return (
-    <nav aria-label="Lobby doors" style={{ position: 'absolute', left: 28, bottom: 56, display: 'flex', gap: 12, flexWrap: 'wrap', pointerEvents: 'none' }}>
-      <Link className="btn" style={{ pointerEvents: 'auto', marginTop: 0 }} to={PATHS.heaven}>ENTER THE GALLERY</Link>
-      <Link className="btn" style={{ pointerEvents: 'auto', marginTop: 0 }} to={PATHS.studio}>STUDIO</Link>
-    </nav>
-  );
-}
-
-export const lobbyRoom: RoomDef = { id: 'lobby', path: PATHS.lobby, title: 'Lobby', Scene: LobbyScene, Panels: LobbyPanels };
+// No Panels on purpose: there are no buttons, you walk through the gates.
+export const lobbyRoom: RoomDef = { id: 'lobby', path: PATHS.lobby, title: 'Lobby', Scene: LobbyScene };

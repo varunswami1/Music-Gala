@@ -5,7 +5,7 @@ import { useLibraryData } from '../data/library';
 
 interface Entry { label: string; to: string; depth: 0 | 1 | 2; accent?: string }
 
-/** Full-height editorial drawer: numbered rooms, the world map as a tree, current room marked. Owner: Person 1. */
+/** Full-screen word menu (reference): big light words, the room you are in is struck through and dim, scene rooms listed under Library. Owner: Person 1. */
 export function Menu({ onClose, returnFocusRef }: { onClose: () => void; returnFocusRef: RefObject<HTMLElement> }) {
   const { pathname } = useLocation();
   const lib = useLibraryData();
@@ -41,21 +41,18 @@ export function Menu({ onClose, returnFocusRef }: { onClose: () => void; returnF
     return () => { window.removeEventListener('keydown', key); back?.focus(); };
   }, [onClose, returnFocusRef]);
 
-  let n = -1;
   return (
     <div className="menu-wrap">
       <div className="menu-backdrop" onClick={onClose} />
       <nav className="menu" ref={panel} aria-label="Main">
         <button className="menu-close hbtn" onClick={onClose}>CLOSE</button>
-        <div className="eyebrow">WORLD MAP</div>
         <ol>
           {entries.map((e) => {
-            if (e.depth < 2) n += 1;
             const current = pathname === e.to;
             return (
               <li key={e.to} className={'d' + e.depth}>
                 <Link to={e.to} aria-current={current ? 'page' : undefined} style={e.accent ? ({ ['--accent' as string]: e.accent } as CSSProperties) : undefined}>
-                  <span className="num">{e.depth < 2 ? String(n).padStart(2, '0') : <i className="dot" />}</span>
+                  {e.depth === 2 && <i className="dot" />}
                   <span>{e.label}</span>
                 </Link>
               </li>

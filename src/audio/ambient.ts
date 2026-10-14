@@ -1,20 +1,32 @@
 // Ambient background loop. Owner: Person 1. Fully separate from song playback (see audio/songPlayer.ts).
-// Off by default, starts only from a click (autoplay rules), fades in/out, low volume, one Audio element for the whole app.
+import { create } from 'zustand';
 import { useApp } from '../store/app';
 
-const SRC = '/audio/ambient.mp3';
+/** The ambient options the visitor can choose from (the SOUND picker in the bottom-right controls). */
+export const AMBIENT_TRACKS = [
+  { id: 'hall', label: 'DEEP HALL', src: '/audio/ambient.mp3' },
+  { id: 'rain', label: 'NIGHT RAIN', src: '/audio/ambient-rain.mp3' },
+  { id: 'glass', label: 'GLASS PADS', src: '/audio/ambient-glass.mp3' },
+] as const;
+export type AmbientTrackId = (typeof AMBIENT_TRACKS)[number]['id'];
+const KEY = 'ambientTrack';
+const find = (id: string) => AMBIENT_TRACKS.find((t) => t.id === id) ?? AMBIENT_TRACKS[0];
+const saved = (): AmbientTrackId => { try { return find(localStorage.getItem(KEY) ?? '').id; } catch { return 'hall'; } };
+/** Which option is selected (remembered between visits). */
+export const useAmbientTrack = create<{ id: AmbientTrackId }>(() => ({ id: saved() }));
+
+const SRC = AMBIENT_TRACKS[0].src; // the default track doubles as the "is audio available" probe
 const LEVEL = 0.25;
 let el: HTMLAudioElement | null = null;
 let timer: number | undefined;
-let wanted = false; // what the user last asked for, so a slow play() cannot flip the state back
 
 function audio() {
   if (el) return el;
-  el = new Audio(SRC);
+  el = new Audio(find(useAmbientTrack.getState().id).src);
   el.loop = true;
   el.volume = 0;
   el.addEventListener('error', () => {
-    wanted = false;
+    if (useAmbientTrack.getState().id !== 'hall') { selectAmbientTrack('hall'); return; } // a missing extra track falls back to the default
     useApp.getState().setAmbientAvailable(false);
     useApp.getState().setAmbientOn(false);
   });
@@ -31,13 +43,10 @@ function fade(to: number, done?: () => void) {
   }, 50);
 }
 
-const isAudio = (r: Response) => r.ok || r.status === 206 ? (r.headers.get('content-type') ?? '').startsWith('audio') : false;
-
-/** Call once at start: marks ambience unavailable when the file is missing (a dev server answers with index.html, which is not audio). */
+/** Call once at start: marks ambience unavailable when the file is missing. */
 export function initAmbient() {
   fetch(SRC, { method: 'HEAD' })
-    .then((r) => (r.status === 405 ? fetch(SRC, { headers: { Range: 'bytes=0-0' } }) : r)) // some servers refuse HEAD
-    .then((r) => { if (!isAudio(r)) useApp.getState().setAmbientAvailable(false); })
+    .then((r) => { if (!r.ok || !(r.headers.get('content-type') ?? '').startsWith('audio')) useApp.getState().setAmbientAvailable(false); })
     .catch(() => useApp.getState().setAmbientAvailable(false));
 }
 
@@ -45,14 +54,22 @@ export function initAmbient() {
 export function setAmbient(on: boolean) {
   const s = useApp.getState();
   if (!s.ambientAvailable) return;
-  wanted = on;
   const a = audio();
-  if (on) {
-    a.play()
-      .then(() => { if (!wanted) { a.pause(); return; } s.setAmbientOn(true); fade(LEVEL); })
-      .catch(() => { if (wanted) { wanted = false; s.setAmbientOn(false); } });
-  } else {
-    s.setAmbientOn(false);
-    fade(0, () => a.pause());
-  }
+  if (on) a.play().then(() => { s.setAmbientOn(true); fade(LEVEL); }).catch(() => s.setAmbientOn(false));
+  else { s.setAmbientOn(false); fade(0, () => a.pause()); }
+}
+
+/** Choose an ambient option. Must be called from a click: it also starts the sound so the choice can be heard. */
+export function selectAmbientTrack(id: AmbientTrackId) {
+  const track = find(id);
+  try { localStorage.setItem(KEY, track.id); } catch { /* storage unavailable */ }
+  useAmbientTrack.setState({ id: track.id });
+  const s = useApp.getState();
+  if (!el) { if (s.ambientAvailable) setAmbient(true); return; }
+  const a = el;
+  const swap = () => {
+    a.src = track.src;
+    a.play().then(() => { useApp.getState().setAmbientOn(true); fade(LEVEL); }).catch(() => useApp.getState().setAmbientOn(false));
+  };
+  if (s.ambientOn) fade(0, swap); else { a.volume = 0; swap(); }
 }

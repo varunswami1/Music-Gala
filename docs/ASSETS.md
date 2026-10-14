@@ -7,7 +7,7 @@ Nothing was downloaded, traced or adapted from another model, so there is no thi
 
 | Model | Used in | Made by |
 |---|---|---|
-| Piano, guitar, violin, turntable, headphones, vinyl record | Lobby (guitar also in Studio) | Procedural, original |
+| Piano, guitar, violin, turntable, headphones, vinyl record, drum kit, cello, saxophone, bench, vinyl rack, amp stack, sofa, stairs, arch | Lobby and Studio | Procedural, original |
 | Mixing desk, studio monitors, microphone stands, ring lights, acoustic panels, dome | Studio | Procedural, original |
 | Tabla, harmonium, tanpura, keyboard | Studio | Procedural, original (simplified shapes) |
 | Singer figures (Somay seated, Varun standing), stool, pinboard, columns | Lobby and Studio | Procedural, original (tapered limbs, sampled to points) |

@@ -296,7 +296,7 @@ function boothShell(): THREE.BufferGeometry {
 /** Tall arched windows along a hall wall (local origin on the wall, windows face +x or -x). */
 function windowRow(): THREE.BufferGeometry {
   const parts: Part[] = [];
-  for (const z of [2, -6, -22, -30]) {
+  for (const z of [2, -6, -14, -22]) {
     parts.push(box(0.12, 4.8, 2.8, [0, 3.1, z]));
     parts.push(box(0.16, 4.2, 2.2, [0, 3.1, z]));
     parts.push(box(0.1, 4.2, 0.06, [0, 3.1, z]));
@@ -317,6 +317,115 @@ function roof(): THREE.BufferGeometry {
   }
   for (const x of [-10, -5, 0, 5, 10]) parts.push(limb([x, x === 0 ? 12.6 : 8.4 + (10 - Math.abs(x)) * 0.42, 14], [x, x === 0 ? 12.6 : 8.4 + (10 - Math.abs(x)) * 0.42, -50], 0.04, 0.04, 4));
   return compose(parts);
+}
+
+/** Stairs up to a raised platform, ascending towards -x: 4 steps of 0.3 m, then a 1.2 m high platform (local origin at the foot). */
+function stairs(): THREE.BufferGeometry {
+  const parts: Part[] = [];
+  for (let i = 0; i < 4; i++) { const h = 0.3 * (i + 1); parts.push(box(0.48, h, 3.6, [-(i * 0.48 + 0.24), h / 2, 0])); }
+  parts.push(box(2.8, 1.2, 3.6, [-(4 * 0.48 + 1.4), 0.6, 0]));
+  parts.push(limb([0, 0.9, 1.8], [-1.92, 1.9, 1.8], 0.03));  // hand rails
+  parts.push(limb([0, 0.9, -1.8], [-1.92, 1.9, -1.8], 0.03));
+  return compose(parts);
+}
+
+function bench(): THREE.BufferGeometry {
+  return compose([box(1.6, 0.08, 0.45, [0, 0.45, 0]), box(0.08, 0.45, 0.4, [-0.65, 0.22, 0]), box(0.08, 0.45, 0.4, [0.65, 0.22, 0])]);
+}
+
+function drumKit(): THREE.BufferGeometry {
+  return compose([
+    cyl(0.3, 0.3, 0.4, 16, [0, 0.4, 0], [HALF, 0, 0]),                  // kick
+    cyl(0.17, 0.17, 0.16, 14, [-0.35, 0.72, 0.35]),                     // snare
+    limb([-0.35, 0.64, 0.35], [-0.35, 0, 0.35], 0.012),
+    cyl(0.14, 0.14, 0.2, 14, [-0.15, 0.95, 0.1]),                       // toms
+    cyl(0.15, 0.15, 0.2, 14, [0.15, 0.95, 0.1]),
+    cyl(0.2, 0.2, 0.4, 14, [0.6, 0.45, 0.3]),                           // floor tom
+    cyl(0.18, 0.18, 0.02, 16, [-0.7, 0.95, 0.3]),                       // hi-hat
+    limb([-0.7, 0.94, 0.3], [-0.7, 0, 0.3], 0.012),
+    cyl(0.25, 0.25, 0.01, 18, [-0.5, 1.45, -0.1], [0.15, 0, 0.1]),      // cymbals
+    cyl(0.28, 0.28, 0.01, 18, [0.55, 1.4, -0.1], [0.15, 0, -0.1]),
+    limb([-0.5, 1.45, -0.1], [-0.5, 0, -0.1], 0.012),
+    limb([0.55, 1.4, -0.1], [0.55, 0, -0.1], 0.012),
+    cyl(0.15, 0.15, 0.05, 12, [0, 0.5, 0.95]),                          // stool
+    limb([0, 0.48, 0.95], [0, 0, 0.95], 0.02),
+  ]);
+}
+
+function cello(): THREE.BufferGeometry {
+  return compose([
+    sph(1, [0, 0.55, 0], [0.2, 0.25, 0.08], 14),
+    sph(1, [0, 0.92, 0], [0.16, 0.2, 0.08], 14),
+    box(0.05, 0.95, 0.04, [0, 1.55, 0]),
+    tor(0.04, 0.01, [0, 2.08, 0], [0, 0, 0], TAU, 10),
+    limb([0, 0.3, 0], [0, 0, 0.1], 0.012),
+    box(0.01, 1.7, 0.005, [0, 1.1, 0.09]),
+    limb([0.4, 0.3, 0.2], [0.35, 1.5, 0.2], 0.008),                     // bow
+  ]);
+}
+
+function saxophone(): THREE.BufferGeometry {
+  const parts: Part[] = [
+    cyl(0.045, 0.045, 1.1, 8, [0, 1.0, 0]),
+    tor(0.2, 0.045, [0.2, 0.45, 0], [0, 0, Math.PI], Math.PI, 14),
+    cyl(0.045, 0.045, 0.5, 8, [0.4, 0.7, 0]),
+    cyl(0.2, 0.05, 0.3, 14, [0.4, 1.05, 0]),
+    limb([0, 1.55, 0], [-0.2, 1.7, 0], 0.02),
+  ];
+  for (let i = 0; i < 6; i++) parts.push(cyl(0.025, 0.025, 0.02, 6, [0, 0.7 + i * 0.15, 0.05], [HALF, 0, 0]));
+  return compose(parts);
+}
+
+/** Shelving full of records, 2.4 m wide, front faces +z. */
+function vinylRack(): THREE.BufferGeometry {
+  const parts: Part[] = [box(2.4, 1.4, 0.4, [0, 0.7, 0])];
+  for (let r = 0; r < 3; r++) {
+    const y = 0.05 + r * 0.45;
+    parts.push(box(2.4, 0.03, 0.4, [0, y, 0]));
+    for (let i = 0; i < 22; i++) parts.push(box(0.02, 0.32, 0.3, [-1.05 + i * 0.1, y + 0.18, 0.02]));
+  }
+  return compose(parts);
+}
+
+function ampStack(): THREE.BufferGeometry {
+  const parts: Part[] = [box(1.0, 0.9, 0.5, [0, 0.45, 0]), box(1.0, 0.9, 0.5, [0, 1.35, 0]), box(1.0, 0.3, 0.4, [0, 1.95, 0])];
+  for (const y of [0.45, 1.35]) for (const x of [-0.25, 0.25]) parts.push(tor(0.18, 0.01, [x, y, 0.255], [0, 0, 0], TAU, 16));
+  for (let i = 0; i < 5; i++) parts.push(cyl(0.025, 0.025, 0.02, 6, [-0.35 + i * 0.175, 1.95, 0.21], [HALF, 0, 0]));
+  return compose(parts);
+}
+
+function sofa(): THREE.BufferGeometry {
+  return compose([
+    box(2.2, 0.35, 0.9, [0, 0.4, 0]), box(2.2, 0.7, 0.2, [0, 0.85, -0.35]),
+    box(0.2, 0.55, 0.9, [-1.1, 0.55, 0]), box(0.2, 0.55, 0.9, [1.1, 0.55, 0]),
+    box(1.0, 0.15, 0.8, [-0.5, 0.65, 0.05]), box(1.0, 0.15, 0.8, [0.5, 0.65, 0.05]),
+    box(0.08, 0.2, 0.08, [-1.0, 0.1, 0.35]), box(0.08, 0.2, 0.08, [1.0, 0.1, 0.35]),
+    box(0.08, 0.2, 0.08, [-1.0, 0.1, -0.35]), box(0.08, 0.2, 0.08, [1.0, 0.1, -0.35]),
+  ]);
+}
+
+function coffeeTable(): THREE.BufferGeometry {
+  return compose([
+    box(1.2, 0.05, 0.6, [0, 0.4, 0]),
+    limb([-0.5, 0.38, -0.22], [-0.55, 0, -0.25], 0.02), limb([0.5, 0.38, -0.22], [0.55, 0, -0.25], 0.02),
+    limb([-0.5, 0.38, 0.22], [-0.55, 0, 0.25], 0.02), limb([0.5, 0.38, 0.22], [0.55, 0, 0.25], 0.02),
+  ]);
+}
+
+function musicStand(): THREE.BufferGeometry {
+  return compose([
+    box(0.5, 0.35, 0.02, [0, 1.35, 0], [-0.3, 0, 0]),
+    limb([0, 0.25, 0], [0, 1.18, 0], 0.012),
+    limb([0, 0.25, 0], [0.25, 0, 0.15], 0.01), limb([0, 0.25, 0], [-0.25, 0, 0.15], 0.01), limb([0, 0.25, 0], [0, 0, -0.28], 0.01),
+  ]);
+}
+
+/** The grand entrance arch on the lobby's back wall. */
+function arch(): THREE.BufferGeometry {
+  return compose([
+    box(0.6, 6, 0.6, [-3, 3, 0]), box(0.6, 6, 0.6, [3, 3, 0]),
+    tor(3, 0.25, [0, 6, 0], [0, 0, 0], Math.PI, 36), tor(2.6, 0.05, [0, 6, 0], [0, 0, 0], Math.PI, 36),
+  ]);
 }
 
 export interface PersonPose {
@@ -399,6 +508,7 @@ export const VARUN: PersonPose = {
 export const BUILDERS = {
   piano, guitar, violin, turntable, headphones, record,
   tabla, harmonium, tanpura, micStand, micStandLow, stool, column, board, speaker, consoleDesk, synth, panels, lights, dome, coneLamp, foam, boothShell, windowRow, roof,
+  stairs, bench, drumKit, cello, saxophone, vinylRack, ampStack, sofa, coffeeTable, musicStand, arch,
   somay: () => buildPerson(SOMAY, 'body'),
   somayL: () => buildPerson(SOMAY, 'left'),
   somayR: () => buildPerson(SOMAY, 'right'),

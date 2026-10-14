@@ -4,7 +4,7 @@ import json, sys, tempfile, unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import import_data as im, build_artists as ba, build_recs as br, fetch_lyrics as fl, localize_covers as lc, validate_library as vl  # noqa: E402
+import build_recs_from_profiles as bp, import_data as im, build_artists as ba, build_recs as br, fetch_lyrics as fl, localize_covers as lc, validate_library as vl  # noqa: E402
 from _common import norm  # noqa: E402
 
 
@@ -117,6 +117,33 @@ class ImportData(unittest.TestCase):
         out = im.convert_lyrics({"abc": {"lyrics": "a\r\nb  \r\n\r\nc\r\n", "source": "None"}, "e": {"lyrics": "  "}, "../x": {"lyrics": "bad"}})
         self.assertEqual(list(out), ["abc"]); self.assertEqual(out["abc"]["text"], "a\nb\n\nc")
         self.assertIn("not recorded", out["abc"]["source"]); self.assertFalse(out["abc"]["partial"])
+
+
+class ProfileRecs(unittest.TestCase):
+    def fixture(self):
+        lib = {"artists": [{"id": "a1", "name": "Arijit Singh"}, {"id": "a2", "name": "Armaan Malik"}],
+               "tracks": [{"id": "t1", "title": "Own Song", "artistNames": ["Arijit Singh"], "youtubeId": "own1"}]}
+        prof = {"Arijit Singh": {"name": "Arijit Singh", "topSongs": [{"title": "Own Song", "videoId": "own1"}, {"title": "New Hit", "videoId": "n1"}],
+                                 "relatedArtists": [{"name": "Armaan Malik"}, {"name": "Stranger"}, {"name": "Pal"}]},
+                "Pal": {"name": "Pal", "topSongs": [{"title": "Pal Song", "videoId": "p1"}], "relatedArtists": []},
+                "Broken": {"miss": True}}
+        return lib, prof
+
+    def test_owned_songs_skipped_and_related_sorted_out(self):
+        lib, prof = self.fixture()
+        out = bp.build(lib, prof)
+        recs = out["byArtist"]["a1"]
+        titles = [r["title"] for r in recs]
+        self.assertIn("New Hit", titles); self.assertNotIn("Own Song", titles)          # already owned (matched by youtubeId)
+        self.assertIn("Pal Song", titles)                                               # related artist with a profile
+        stranger = [r for r in recs if r["title"] == "Stranger"][0]
+        self.assertEqual(stranger["kind"], "artist")                                    # related artist we know nothing else about
+        self.assertNotIn("Armaan Malik", titles)                                        # related but already in the library: goes to 'related' instead
+        self.assertEqual(out["related"]["a1"], ["a2"])
+
+    def test_artists_not_in_library_or_missing_are_ignored(self):
+        lib, prof = self.fixture()
+        self.assertNotIn("a2", bp.build(lib, prof)["byArtist"])                          # Armaan has no profile, so no suggestions
 
 
 if __name__ == "__main__":

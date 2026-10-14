@@ -1,0 +1,6 @@
+/* Ambient sound picker (inside the bottom-right controls). */
+.controls .sound-row { display: flex; gap: 14px; }
+.controls .sound-picker { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; padding: 6px 0; }
+.controls .sound-picker button[aria-pressed="true"] { color: #fff; }
+.controls button { padding: 4px 0; }
+.controls button:focus-visible { outline: 1px solid #fff; outline-offset: 3px; }

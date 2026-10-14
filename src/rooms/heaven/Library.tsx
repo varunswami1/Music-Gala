@@ -14,6 +14,7 @@ function LibraryScene() {
     covers: (lib?.songsByRoom.get(r.id) ?? []).filter((s) => s.coverUrl).slice(0, 9).map((s) => s.coverUrl),
     onOpen: () => tunnelGo(to.libraryRoom(r.id), r.displayName),
   })), [lib]);
-  return <Corridor items={items} grid={3} emptyText={!lib ? 'LOADING…' : 'NO ROOMS IN THE LIBRARY DATA'} />;
+  const ambient = useMemo(() => (lib?.songs ?? []).filter((s) => s.coverUrl).slice(0, 24).map((s) => s.coverUrl as string), [lib]);
+  return <Corridor items={items} grid={3} ambient={ambient} emptyText={!lib ? 'LOADING…' : 'NO ROOMS IN THE LIBRARY DATA'} />;
 }
 export const libraryRoom: RoomDef = { id: 'library', path: PATHS.library, title: 'Library', Scene: LibraryScene };

@@ -3,8 +3,9 @@
 // a lit wall screen, a pinboard of frames, a hanging cone lamp, a door with a floating sign. Models and content are our own.
 // Layout: a big round control room (walk in with scroll / W S A D). At the far end, behind a glass wall, is a separate vocal booth
 // with its own walls, ceiling and foam. Walk through the glass door in the middle to go inside and stand next to the singers.
+// You can turn all the way round: behind the start there is a lounge, record racks, drums and a cello, and a quiet line of text.
+// No buttons: leave through the Lobby or Heaven gate (a tunnel of light plays, see ../lobby/models/transition.tsx).
 import { useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { Text } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
@@ -17,10 +18,11 @@ import { Model } from '../lobby/models/Model';
 import { EqualizerScreen, Ring } from '../lobby/models/effects';
 import { useReducedMotion } from '../lobby/models/motion';
 import { clamp, useWalk } from '../lobby/models/useWalk';
+import { Tunnel, useGate } from '../lobby/models/transition';
 import { SOMAY, VARUN, shoulderOf } from '../lobby/models/instruments';
 import type { V3 } from '../lobby/models/build';
 
-const START: V3 = [0, 1.7, 6];
+const START: V3 = [0, 1.7, 3];
 const CENTER_Z = -7;      // centre of the round room
 const GLASS_Z = -14;      // the glass wall of the booth
 const GAP = 1.2;          // half-width of the glass door
@@ -81,10 +83,11 @@ function Singer({ who, position, phase, armL, armR, seed }: { who: 'somay' | 'va
 
 function StudioScene() {
   const go = useApp((s) => s.go);
+  const enter = useGate(go);
   const reduced = useReducedMotion();
   const lamp = useRef<THREE.MeshBasicMaterial>(null);
   useWalk({ start: START, constrain: constrainStudio });
-  useHint('SCROLL OR W / S TO WALK · THROUGH THE GLASS DOOR TO THE BOOTH · CLICK A DOOR');
+  useHint('SCROLL OR W / S TO WALK · DRAG OR ← → TO LOOK AROUND · GLASS DOOR TO THE BOOTH');
 
   useFrame((state) => {
     if (lamp.current) lamp.current.opacity = reduced ? 0.85 : 0.55 + 0.35 * Math.sin(state.clock.elapsedTime * 1.6);
@@ -94,6 +97,7 @@ function StudioScene() {
   return (
     <group>
       <fog attach="fog" args={['#000000', 14, 95]} />
+      <Tunnel />
 
       {/* the big round control room: wall, dome, acoustic panels, ring lights */}
       <WireCylinder radius={15} height={6} segments={48} position={[0, 3, CENTER_Z]} opacity={0.3} />
@@ -162,20 +166,30 @@ function StudioScene() {
       <Model kind="synth" position={[8, 0.05, -3]} rotation={[0, -0.5, 0]} scale={1.9} points={1000} bob={0.05} wireOpacity={0.55} pointSize={0.03} seed={44} />
       <Model kind="guitar" position={[10.2, 0.05, -5]} rotation={[0, -0.6, 0]} scale={2} points={1600} sway={0.15} bob={0.06} phase={3} wireOpacity={0.5} pointSize={0.03} seed={45} />
 
-      <Door label="LOBBY" sublabel="BACK TO THE HALL" position={[-12.8, 0, -1]} rotation={[0, 1.2, 0]} size={[3, 4.4]} onOpen={() => go(PATHS.lobby)} />
-      <Door label="HEAVEN" sublabel="THE GALLERY" position={[12.8, 0, -1]} rotation={[0, -1.2, 0]} size={[3, 4.4]} onOpen={() => go(PATHS.heaven)} />
+      {/* behind you: a lounge, record racks, drums, a cello, a sax in the air, and a quiet line of text */}
+      <Text position={[0, 4.6, 7.7]} rotation={[0, Math.PI, 0]} fontSize={2.2} letterSpacing={0.4} color="#2e2e2e">STUDIO</Text>
+      <Text position={[0, 3.4, 7.7]} rotation={[0, Math.PI, 0]} fontSize={0.26} letterSpacing={0.5} color="#3a3a3a">SOMAY · VARUN</Text>
+      <Model kind="sofa" position={[0, 0, 6.4]} scale={2} wireOpacity={0.5} />
+      <Model kind="coffeeTable" position={[0, 0, 4.7]} scale={2} wireOpacity={0.5} />
+      {[-1, 1].map((s) => {
+        const a = s * 0.62;                                   // angle round the back wall
+        const x = 13.6 * Math.sin(a); const z = CENTER_Z + 13.6 * Math.cos(a);
+        return <Model key={s} kind="vinylRack" position={[x, 0, z]} rotation={[0, Math.atan2(-x, CENTER_Z - z), 0]} scale={1.6} wireOpacity={0.5} />;
+      })}
+      <Model kind="drumKit" position={[9.5, 0.05, 3]} rotation={[0, Math.atan2(-9.5, CENTER_Z - 3), 0]} scale={2} points={1800} sway={0.08} bob={0.05} wireOpacity={0.5} pointSize={0.03} seed={51} />
+      <Model kind="cello" position={[-9.5, 0.05, 3]} rotation={[0, Math.atan2(9.5, CENTER_Z - 3), 0]} scale={1.9} points={1500} sway={0.15} bob={0.06} phase={1} wireOpacity={0.5} pointSize={0.03} seed={52} />
+      <Model kind="saxophone" position={[-4.5, 0.8, 2]} rotation={[0, 0.7, 0]} scale={2.1} points={1200} sway={0.25} bob={0.15} phase={2} wireOpacity={0.5} pointSize={0.03} seed={53} />
+      <Model kind="ampStack" position={[5.5, 0, 5.2]} rotation={[0, Math.PI + 0.4, 0]} scale={1.8} wireOpacity={0.55} />
+      <Model kind="ampStack" position={[-5.5, 0, 5.2]} rotation={[0, Math.PI - 0.4, 0]} scale={1.8} wireOpacity={0.55} />
+      <Model kind="musicStand" position={[-3.5, 0, -3]} rotation={[0, 0.4, 0]} scale={1.8} wireOpacity={0.5} />
+      <Model kind="bench" position={[7, 0, -12]} rotation={[0, -0.9, 0]} scale={2} wireOpacity={0.5} />
+      <Model kind="bench" position={[-7, 0, -12]} rotation={[0, 0.9, 0]} scale={2} wireOpacity={0.5} />
+
+      <Door label="LOBBY" sublabel="BACK TO THE HALL" position={[-12.8, 0, -1]} rotation={[0, 1.2, 0]} size={[3, 4.4]} onOpen={() => enter(PATHS.lobby, [-13.5, 1.7, -1.3])} />
+      <Door label="HEAVEN" sublabel="THE GALLERY" position={[12.8, 0, -1]} rotation={[0, -1.2, 0]} size={[3, 4.4]} onOpen={() => enter(PATHS.heaven, [13.5, 1.7, -1.3])} />
     </group>
   );
 }
 
-/** Plain links for keyboard and touch users: the 3D doors have no keyboard access yet. */
-function StudioPanels() {
-  return (
-    <nav aria-label="Studio doors" style={{ position: 'absolute', left: 28, bottom: 56, display: 'flex', gap: 12, flexWrap: 'wrap', pointerEvents: 'none' }}>
-      <Link className="btn" style={{ pointerEvents: 'auto', marginTop: 0 }} to={PATHS.lobby}>LOBBY</Link>
-      <Link className="btn" style={{ pointerEvents: 'auto', marginTop: 0 }} to={PATHS.heaven}>HEAVEN</Link>
-    </nav>
-  );
-}
-
-export const studioRoom: RoomDef = { id: 'studio', path: PATHS.studio, title: 'Studio', Scene: StudioScene, Panels: StudioPanels };
+// No Panels on purpose: there are no buttons, you walk through the gates.
+export const studioRoom: RoomDef = { id: 'studio', path: PATHS.studio, title: 'Studio', Scene: StudioScene };

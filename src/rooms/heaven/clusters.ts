@@ -5,7 +5,7 @@ import type { Song } from '../../contract/types';
 export type GroupMode = 'artist' | 'year' | 'all';
 export interface Cluster { id: string; label: string; songs: Song[] }
 
-export const CLUSTER_SIZE = 54;   // 18 columns x 3 rows
+export const CLUSTER_SIZE = 72;   // 24 columns x 3 rows
 const MIN_ARTIST_SONGS = 5;       // artists with fewer songs are merged into "MORE ARTISTS"
 
 /** Split a long list into evenly sized clusters of at most CLUSTER_SIZE. */

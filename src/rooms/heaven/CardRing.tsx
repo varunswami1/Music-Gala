@@ -1,7 +1,8 @@
 // Round room of album cards, built as LAYERS: albums behind albums. Owner: Person 3.
+// Full 360°: tap ← → for one card, HOLD to keep turning (a full lap in about 3.5 s).
 // Each layer (cluster of <= 54 songs) is a ring of cards; further layers sit at a bigger radius behind the front one, offset
 // by half a card so they peek through the gaps. Keyboard only (no wheel, no zoom):
-//   ← → turn the ring   ↑ ↓ send the front layer back / bring the next one forward   G change grouping
+//   ← → turn the ring (hold = continuous)   ↑ ↓ send the front layer back / bring the next one forward   G change grouping
 // The eye is at the middle row, so you never have to look up or down. Only ~3 layers (<=162 cards) are mounted.
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useFrame } from '@react-three/fiber';
@@ -16,11 +17,14 @@ import { buildClusters, type Cluster } from './clusters';
 import { useRing } from './ringStore';
 import { isTyping, prefersReducedMotion } from './motion';
 import { tunnelGo } from './tunnel';
+import { useTurn } from './turn';
 
-const R0 = 5.6, GAP = 2.7;                 // front radius, extra radius per layer behind
-const CARD = 1.25, PITCH = 1.5;            // card size, row spacing
-export const RING_EYE_Y = 2.2;             // camera height = middle row, so no head tilt is needed
-const MAX_COLS = 18, MIN_COLS = 8, MAX_ROWS = 3;
+const R0 = 9.5, GAP = 3.4;                 // front radius (wide, so you see many cards at a distance), extra radius per layer behind
+const CARD = 1.4, PITCH = 1.6;             // card size, row spacing
+export const RING_EYE_Y = 2.3;             // camera height = middle row, so no head tilt is needed
+const MAX_COLS = 24, MIN_COLS = 10, MAX_ROWS = 3;
+export const RING_RADIUS = R0 + 2 * GAP + 3;   // wire cylinder that contains up to 3 layers
+const INTRO_DELAY = 1.3;                   // seconds: cards fade in after the camera has walked in through the lobby
 const TAU = Math.PI * 2;
 const PLANE = new THREE.PlaneGeometry(CARD, CARD);
 const FRAME = new THREE.EdgesGeometry(new THREE.PlaneGeometry(CARD + 0.08, CARD + 0.08));
@@ -122,12 +126,15 @@ export function CardRing({ songs, accent }: { songs: Song[]; accent: string }) {
   const page = Math.min(Math.max(0, index), Math.max(0, clusters.length - 1));
   const cluster = clusters[page];
   const front = layoutOf(cluster?.songs.length ?? 0);
-  const colsRef = useRef(front.cols); colsRef.current = front.cols;
+  const stepRef = useRef(TAU / front.cols); stepRef.current = TAU / front.cols;
 
   const group = useRef<THREE.Group>(null);
   const registry = useRef(new Set<LayerState>());
-  const target = useRef(0), current = useRef(0), pos = useRef(page), intro = useRef(0);
+  const pos = useRef(page), intro = useRef(0);
+  const turn = useTurn(stepRef);
+  const { target, current } = turn;
   const reduce = useMemo(prefersReducedMotion, []);
+  const mountedAt = useRef(performance.now());
 
   // Keep the layer that was just sent back mounted while it dissolves.
   const lastPage = useRef(page);
@@ -139,7 +146,7 @@ export function CardRing({ songs, accent }: { songs: Song[]; accent: string }) {
   }, [page]);
 
   // New grouping / new songs: start clean.
-  useEffect(() => { pos.current = page; target.current = 0; current.current = 0; intro.current = 0; }, [clusters]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { pos.current = page; target.current = 0; current.current = 0; intro.current = !reduce && performance.now() - mountedAt.current < 500 ? -INTRO_DELAY : 0; }, [clusters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Search: bring a song to the front (works for requests made before this room opened, too).
   useEffect(() => {
@@ -170,12 +177,9 @@ export function CardRing({ songs, accent }: { songs: Song[]; accent: string }) {
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (isTyping(e) || e.metaKey || e.ctrlKey || e.altKey) return;
-      const step = TAU / colsRef.current;
       const ring = useRing.getState();
       const k = e.key.toLowerCase();
-      if (k === 'arrowleft' || k === 'a') target.current += step;
-      else if (k === 'arrowright' || k === 'd') target.current -= step;
-      else if (k === 'arrowdown' || k === 's' || k === 'pagedown') { e.preventDefault(); useRing.setState({ index: Math.min(ring.clusters.length - 1, ring.index + 1) }); }
+      if (k === 'arrowdown' || k === 's' || k === 'pagedown') { e.preventDefault(); useRing.setState({ index: Math.min(ring.clusters.length - 1, ring.index + 1) }); }
       else if (k === 'arrowup' || k === 'w' || k === 'pageup') { e.preventDefault(); useRing.setState({ index: Math.max(0, ring.index - 1) }); }
       else if (k === 'g') ring.cycleMode();
     };
@@ -188,17 +192,13 @@ export function CardRing({ songs, accent }: { songs: Song[]; accent: string }) {
     if (reduce || Math.abs(page - pos.current) > 1.6) pos.current = page;
     else pos.current += (page - pos.current) * (1 - Math.exp(-dt * 5.5));
     if (Math.abs(page - pos.current) < 0.002) pos.current = page;
-    if (reduce) { current.current = target.current; intro.current = 1; }
-    else {
-      current.current += (target.current - current.current) * (1 - Math.exp(-dt * 6));
-      intro.current = Math.min(1, intro.current + dt * 2.2);
-    }
-    g.rotation.y = current.current;
+    g.rotation.y = turn.tick(dt, reduce);
+    intro.current = reduce ? 1 : Math.min(1, intro.current + dt * 2.2);
     registry.current.forEach((st) => {
       const d = st.k - pos.current;
       st.R = d >= 0 ? R0 + d * GAP : R0 + d * 1.6;                       // passed layers glide toward the viewer while fading
       const vis = d < 0 ? clamp01(1 + d / 0.6) : d > 2.4 ? clamp01(1 - (d - 2.4) / 0.8) : 1;
-      st.opacity = vis * intro.current;
+      st.opacity = vis * Math.max(0, intro.current);
       st.dim = d <= 0 ? 1 : 1 / (1 + 0.9 * d);                           // layers further back are darker
     });
   });

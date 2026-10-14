@@ -5,7 +5,8 @@ import type { RoomDef } from '../../contract/types';
 import { PATHS } from '../../contract/routes';
 import { WireCylinder } from '../../world/Wire';
 import { Corridor, type GateItem } from './Corridor';
-import { CardRing, RING_EYE_Y } from './CardRing';
+import { CardRing, RING_EYE_Y, RING_RADIUS } from './CardRing';
+import { RoomVestibule } from './Vestibule';
 import { useFixedCamera } from './camera';
 import { tunnelDo } from './tunnel';
 import { usePlaylists, usePlaylistView, type Playlist } from './playlistsStore';
@@ -18,7 +19,8 @@ function PlaylistRing({ playlist }: { playlist: Playlist }) {
   useFixedCamera(EYE, LOOK);
   return (
     <group>
-      <WireCylinder radius={15} height={7.5} position={[0, 3.75, 0]} color={ACCENT} opacity={0.25} />
+      <WireCylinder radius={RING_RADIUS} height={8} position={[0, 4, 0]} color={ACCENT} opacity={0.25} segments={48} />
+      <RoomVestibule wallZ={RING_RADIUS} />
       <CardRing songs={playlist.songs} accent={ACCENT} />
     </group>
   );
@@ -36,7 +38,8 @@ function PlaylistsScene() {
   const selected = playlists.find((p) => p.id === selectedId);
   if (selected) return <PlaylistRing key={selected.id} playlist={selected} />;
   const msg = status === 'error' ? 'PLAYLIST DATA UNAVAILABLE' : status === 'loading' ? 'LOADING…' : playlists.length === 0 ? 'NO PLAYLISTS IN THE LIBRARY DATA' : '';
-  return <Corridor key="overview" items={items} grid={3} emptyText={msg} />;
+  const ambient = playlists.flatMap((p) => p.songs.filter((s) => s.coverUrl).slice(0, 2).map((s) => s.coverUrl as string)).slice(0, 24);
+  return <Corridor key="overview" items={items} grid={3} ambient={ambient} emptyText={msg} />;
 }
 
 export const playlistsRoom: RoomDef = { id: 'playlists', path: PATHS.playlists, title: 'Playlists', Scene: PlaylistsScene };

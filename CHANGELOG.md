@@ -2,7 +2,48 @@
 
 All notable changes from each team member across all phases are documented below.
 
-## Iteration 2 (October 11, 2026): Architectural Realism & Visual Overhaul
+## Iteration 3 (October 14, 2026): Round Colonnades, Slit Portals, Offline Recs & Sound Engine
+
+### Shell & Navigation (Person 1)
+- **Full-Screen Minimalist Word Menu (`Menu.tsx`):** Large architectural typography, active room styled with strikethrough and dim color, hierarchical scene listing under Library, keyboard focus-trap with Escape close.
+- **Continuous 360° Rotation:** Unclamped yaw for unrestricted panoramic rotation across all rooms.
+- **Direction-Aware Walking:** Scroll and keyboard motion advance in the camera's current line of sight with smooth wall collision sliding.
+
+### Lobby & Studio Enhancements (Person 2)
+- **360° Free Look:** Mouse drag, Q/E, ArrowLeft/Right, and single-finger touch dragging.
+- **Directional Navigation:** Walk forward towards where you are looking, A/D to sidestep.
+- **Architectural Typography on Back Wall:**
+  - Lobby: `"MUSIC GALLERY"`, `"YOUR LIBRARY · YOUR ROOMS"`, `"EST. 2026"`.
+  - Studio: `"STUDIO"`, `"SOMAY · VARUN"`.
+- **Expanded Instrument & Studio Props:** Merged geometry drum kit, cello, saxophone, benches, vinyl racks, amplifier stacks, music stands, sofa, coffee table, and suspended cone lamps.
+- **Elevated Studio Portal:** Studio gate moved to left wall on a 4-step raised platform (camera climbs stairs), situated 6m from the main entrance.
+- **Buttonless Pure 3D Flow:** Removed 2D navigation buttons in favor of authentic portal passage.
+
+### Heaven, Library & Playlists Overhaul (Person 3)
+- **Expanded Round Room Ring:** Card ring radius increased from 5.6 to 9.5; up to 24 columns and 72 albums visible per layer across 3 layers (up to 216 covers).
+- **Continuous Card Carousel:** Press and hold ← / → for continuous 360° ring revolution (full lap in ~3.5s).
+- **Enriched Corridors (`CorridorDecor.tsx`):** Flanking pillars with white vertical light strips, strolling dot-cloud figures, and suspended floating cover frames.
+- **Architectural Vestibule Arrival (`Vestibule.tsx`):** Corridors open via narrow entry vestibules expanding into spacious halls; round rooms enter from the rear perimeter.
+
+### Song & Artist Cylinder Rooms & Sound Selector (Person 4)
+- **True Cylinder Construction:** 192-segment smooth perimeter with 48 evenly spaced architectural uprights.
+- **Curved Hanging Artwork:** Curved picture plane following a gentle arc with double curved border trim (~13% larger scale).
+- **Horizon-Stabilized Free Look:** Direct yaw/pitch camera control in `YXZ` rotation order to eliminate roll tilt and leaning walls.
+- **Multi-Track Ambient Sound Selector (`ambient.ts`, `ControlsOverlay.tsx`, `soundPicker.css`):**
+  - Three seamless generative soundscapes: `DEEP HALL` (`ambient.mp3`), `NIGHT RAIN` (`ambient-rain.mp3`), and `GLASS PADS` (`ambient-glass.mp3`).
+  - Interactive "CHOOSE SOUND" popover with persistent local-storage choice and automatic fallback.
+- **Accessibility & Reduced Motion:** WCAG 2.4.7 focus outlines, larger touch targets, and motion disablement when system requests reduced motion.
+
+### Round Colonnades, Slit Portals & Offline Recs (Person 5)
+- **Architectural Colonnade System (`Colonnade.tsx`):** Ring of classical pillars (base, shaft, capital), spanning architrave, dome ribs rising to an open oculus, and concentric floor rings.
+- **Taste & Discover Colonnade Redesign:**
+  - Taste: Standing in the center surrounded by turntable, grand piano, violin, audience point clouds, release skyline, and top artist canvas frames.
+  - Discover: Hanging suggestions around a ±105° circle with props below (oversized headphones, boombox, cassette, rotating armillary globe).
+- **Glowing Slit Wall Portals (`Door.tsx`):** Dark architectural monolith with a central glowing vertical slit and floor light spill.
+- **Corrected Camera Direction of Travel (`TransitionDirector.tsx`):** Fixed camera alignment during door flight so it faces forward through the slit toward the destination rather than looking backward.
+- **Slit Light Burst Transition (`Warp.tsx`):** Radial light wash as camera passes through the wall slit, followed by smooth room arrival.
+- **Zero-Dependency Offline Recommendations (`build_recs_from_profiles.py`, `recommend.ts`, `recommendations.json`):** Derived from YouTube Music profile data for 95 artists and 2,749 tracks without external API keys or network calls. "From library" prioritizes related artists; "New" tab suggests outside tracks with reasons.
+
 
 ### Interactive Archive Room (`/archive`)
 - Full interactive 3D and 2D chronicler room added at `/archive`.

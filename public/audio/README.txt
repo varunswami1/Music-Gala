@@ -1,2 +1,5 @@
-ambient.mp3 is a generated placeholder: an 80-second seamless dark drone, synthesised from scratch (no samples, no copyright).
-Replace it with any royalty-free or personal loop (same filename) whenever you like. The SOUND control starts it after a click.
+Generated placeholder loops (80 s, seamless, synthesised from scratch: no samples, no copyright):
+  ambient.mp3        DEEP HALL   (default)
+  ambient-rain.mp3   NIGHT RAIN
+  ambient-glass.mp3  GLASS PADS
+Replace any of them with your own loops (same filenames). The picker is in the bottom-right controls (CHOOSE SOUND).

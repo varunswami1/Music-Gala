@@ -23,6 +23,6 @@ function HeavenScene() {
   ].map(([id, label, sub, path], i) => ({
     id, label, sub, covers: covers.slice(i * 4, i * 4 + 4), onOpen: () => tunnelGo(path, label),
   })), [covers]);
-  return <Corridor items={items} grid={2} />;
+  return <Corridor items={items} grid={2} ambient={covers.slice(8)} />;
 }
 export const heavenRoom: RoomDef = { id: 'heaven', path: PATHS.heaven, title: 'Heaven', Scene: HeavenScene };
